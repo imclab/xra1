@@ -1,0 +1,868 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>XRAI · INSTRUMENT</title>
+<meta name="description" content="XRAI v1.0 reference viewer — instrument-grade Three.js renderer.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ground:    #0a0e0c;
+    --ground-2:  #0f1411;
+    --ink:       #f4ecdb;
+    --ink-dim:   #b8b09f;
+    --rule:      #2a302d;
+    --rule-hot:  #3a423d;
+    --acid:      #c9ff00;
+    --rust:      #ff5c1f;
+    --glass:     rgba(244,236,219,0.035);
+    --mono:      "IBM Plex Mono", ui-monospace, monospace;
+    --display:   "Fraunces", "Times New Roman", serif;
+    --gutter:    clamp(16px, 2.2vw, 28px);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    -webkit-font-smoothing: antialiased;
+    cursor: crosshair;
+    /* warm ink ground + faint atmospheric tint */
+    background-image:
+      radial-gradient(circle at 22% 18%, rgba(201,255,0,0.04), transparent 42%),
+      radial-gradient(circle at 78% 86%, rgba(255,92,31,0.025), transparent 48%);
+  }
+
+  /* film grain — keeps the instrument feel from going flat */
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.32;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* the diagonal — a single rule crossing the page, grid-breaking */
+  .diag {
+    position: fixed;
+    left: -10vmax; right: -10vmax;
+    top: 38%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--rule-hot) 14%, var(--rule-hot) 86%, transparent);
+    transform: rotate(-7deg);
+    transform-origin: center;
+    z-index: 1;
+    opacity: 0.55;
+  }
+
+  /* the equator — audio-reactive pulse line */
+  .equator {
+    position: fixed;
+    left: 0; right: 0;
+    top: 50%;
+    height: 1px;
+    background: var(--acid);
+    box-shadow: 0 0 12px rgba(201,255,0,0.5);
+    transform: scaleY(0.6);
+    transform-origin: center;
+    opacity: 0.18;
+    z-index: 2;
+    animation: pulse 3.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.10; transform: scaleY(0.5); }
+    50%      { opacity: 0.28; transform: scaleY(1.4); }
+  }
+
+  /* render surface */
+  #stage {
+    position: fixed; inset: 0;
+    z-index: 0;
+    background:
+      linear-gradient(180deg, transparent 0%, transparent 50%, rgba(10,14,12,0.55) 100%),
+      var(--ground);
+  }
+  #stage canvas { display: block; }
+
+  /* HUD shell — four corner specimens */
+  .hud {
+    position: fixed;
+    z-index: 10;
+    padding: var(--gutter);
+    pointer-events: none;
+  }
+  .hud > * { pointer-events: auto; }
+
+  .hud.tl { top: 0; left: 0; max-width: 38ch; }
+  .hud.tr { top: 0; right: 0; text-align: right; }
+  .hud.bl { bottom: 0; left: 0; max-width: 56ch; }
+  .hud.br { bottom: 0; right: 0; text-align: right; }
+
+  /* specimen card — bordered measurement panel */
+  .specimen {
+    background: var(--glass);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid var(--rule);
+    padding: 14px 16px 12px;
+    position: relative;
+  }
+  .specimen + .specimen { margin-top: 10px; }
+  .specimen::before {
+    content: "";
+    position: absolute;
+    top: -1px; left: -1px;
+    width: 10px; height: 10px;
+    border-top: 1px solid var(--acid);
+    border-left: 1px solid var(--acid);
+  }
+  .specimen::after {
+    content: "";
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 10px; height: 10px;
+    border-bottom: 1px solid var(--acid);
+    border-right: 1px solid var(--acid);
+  }
+
+  /* the brand mark — display serif, contrarian to mono everywhere else */
+  .mark {
+    font-family: var(--display);
+    font-variation-settings: "opsz" 144, "wght" 320, "SOFT" 20;
+    font-size: clamp(40px, 6vw, 88px);
+    line-height: 0.88;
+    letter-spacing: -0.045em;
+    color: var(--ink);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .mark em {
+    font-style: italic;
+    font-variation-settings: "opsz" 144, "wght" 280, "SOFT" 50;
+    color: var(--acid);
+  }
+  .mark-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: var(--ink-dim);
+    margin-bottom: 18px;
+  }
+
+  /* technical label rows — k/v pairs of an instrument readout */
+  .row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 3px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .row:last-child { border-bottom: none; }
+  .row .k {
+    flex: 0 0 auto;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    min-width: 11ch;
+  }
+  .row .v {
+    flex: 1 1 auto;
+    color: var(--ink);
+    font-weight: 500;
+    word-break: break-all;
+  }
+  .row .v.hot { color: var(--acid); }
+  .row .v.crit { color: var(--rust); }
+  .row.right { justify-content: flex-end; }
+  .row.right .k { min-width: auto; }
+
+  /* tier ladder — vertical stack on top-right */
+  .ladder {
+    display: inline-grid;
+    grid-template-columns: auto auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: center;
+    font-size: 10px;
+  }
+  .ladder .tier {
+    text-align: right;
+    color: var(--ink-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .ladder .bar {
+    width: 24px; height: 6px;
+    background: var(--rule);
+    position: relative;
+  }
+  .ladder .active .tier { color: var(--acid); font-weight: 600; }
+  .ladder .active .bar { background: var(--acid); box-shadow: 0 0 8px rgba(201,255,0,0.65); }
+  .ladder .reachable .bar { background: var(--rule-hot); }
+
+  /* entity list — specimen catalog of scene contents */
+  .catalog {
+    margin-top: 10px;
+    max-height: 36vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule-hot) transparent;
+  }
+  .catalog::-webkit-scrollbar { width: 4px; }
+  .catalog::-webkit-scrollbar-thumb { background: var(--rule-hot); }
+  .entity {
+    display: grid;
+    grid-template-columns: 14px 1fr auto;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--rule);
+    cursor: pointer;
+    transition: color 80ms linear, background 80ms linear;
+  }
+  .entity:hover { background: rgba(201,255,0,0.04); }
+  .entity .glyph { color: var(--acid); }
+  .entity .id { color: var(--ink); font-weight: 500; }
+  .entity .type { color: var(--ink-dim); font-size: 9px; text-transform: uppercase; letter-spacing: 0.16em; }
+  .entity .pos { color: var(--ink-dim); font-variant-numeric: tabular-nums; font-size: 10px; text-align: right; }
+
+  /* command line — input affordance */
+  .cmd {
+    border: 1px solid var(--rule);
+    background: rgba(15,20,17,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .cmd .prompt { color: var(--acid); user-select: none; }
+  .cmd input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    caret-color: var(--acid);
+  }
+  .cmd input::placeholder { color: var(--ink-dim); }
+
+  /* the four-glyph corner ticks — repeated everywhere for instrument feel */
+  .ticks { color: var(--rule-hot); font-size: 9px; letter-spacing: 0.4em; }
+
+  /* boot-scramble cue */
+  .scramble { color: var(--acid); }
+  .scramble-done { color: inherit; }
+
+  /* hovered-entity halo on canvas: handled via the readout below cursor */
+  #cursor-readout {
+    position: fixed;
+    z-index: 50;
+    font-size: 10px;
+    color: var(--acid);
+    background: rgba(10,14,12,0.92);
+    border: 1px solid var(--acid);
+    padding: 4px 7px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 80ms;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  #cursor-readout.on { opacity: 1; }
+
+  /* page-load reveal stagger */
+  .reveal { opacity: 0; transform: translateY(4px); animation: reveal 700ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards; }
+  .reveal.d1 { animation-delay:  80ms; }
+  .reveal.d2 { animation-delay: 160ms; }
+  .reveal.d3 { animation-delay: 240ms; }
+  .reveal.d4 { animation-delay: 320ms; }
+  .reveal.d5 { animation-delay: 420ms; }
+  @keyframes reveal { to { opacity: 1; transform: none; } }
+
+  /* RETICLE / LATTICE / AMBIENT ── overlay anchored to projected entity positions.
+     Pattern inspired by splat.mov "TARGET" reticles + AR scene-graph constellations.
+     More functional (per-entity distance + type), more ambient (drifting points + dotted lattice),
+     minimal (corner-tick L-shapes, no full boxes), alive (pulse + dash-drift), futuristic. */
+  #reticle-layer {
+    position: fixed; inset: 0;
+    z-index: 8;
+    pointer-events: none;
+    overflow: visible;
+  }
+  #reticle-layer .corner {
+    stroke: var(--acid);
+    stroke-width: 1;
+    fill: none;
+    stroke-linecap: square;
+    vector-effect: non-scaling-stroke;
+  }
+  #reticle-layer text.body {
+    font-family: var(--mono);
+    font-size: 9px;
+    fill: var(--ink);
+    letter-spacing: 0.18em;
+    text-anchor: middle;
+    text-transform: uppercase;
+    paint-order: stroke;
+    stroke: rgba(10,14,12,0.85);
+    stroke-width: 3px;
+  }
+  #reticle-layer .ret {
+    transition: opacity 180ms linear;
+  }
+  #reticle-layer .ret .pulse {
+    fill: var(--acid);
+    filter: drop-shadow(0 0 4px rgba(201,255,0,0.55));
+    animation: ret-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes ret-pulse {
+    0%, 100% { opacity: 0.20; r: 1.0; }
+    50%      { opacity: 0.85; r: 2.2; }
+  }
+  #reticle-layer .lattice line {
+    stroke: var(--acid);
+    stroke-width: 0.5;
+    stroke-dasharray: 1 3;
+    animation: lattice-drift 4.8s linear infinite;
+  }
+  @keyframes lattice-drift {
+    to { stroke-dashoffset: -32; }
+  }
+  #reticle-layer .ambient circle {
+    fill: var(--acid);
+    transition: opacity 200ms linear;
+  }
+
+  /* responsive: collapse the rightside on narrow */
+  @media (max-width: 720px) {
+    .hud.tr, .hud.br { max-width: 50vw; }
+    .mark { font-size: clamp(32px, 12vw, 56px); }
+  }
+</style>
+</head>
+
+<body>
+  <div class="diag" aria-hidden="true"></div>
+  <div class="equator" aria-hidden="true"></div>
+  <div id="stage" aria-label="XRAI scene render surface"></div>
+
+  <!-- RETICLE LAYER · projected SVG overlay tied to entity world positions.
+       <ambient> = drifting points · <lattice> = inter-entity dotted lines · <reticles> = corner-ticks + label -->
+  <svg id="reticle-layer" aria-hidden="true">
+    <g class="ambient" id="ambient"></g>
+    <g class="lattice" id="lattice"></g>
+    <g id="reticles"></g>
+  </svg>
+
+  <div id="cursor-readout"></div>
+
+  <!-- TOP LEFT · brand mark + scene specimen -->
+  <div class="hud tl">
+    <div class="reveal d1">
+      <span class="ticks">┌ X R A I ─────</span>
+      <span class="mark">xrai<em>·</em>instrument</span>
+      <div class="mark-sub">XRAI v1.0 · reference renderer · Portals</div>
+    </div>
+
+    <div class="specimen reveal d2">
+      <div class="row"><span class="k">DOCUMENT</span><span class="v" id="r-id">—</span></div>
+      <div class="row"><span class="k">AUTHOR</span><span class="v" id="r-author">—</span></div>
+      <div class="row"><span class="k">ORIGIN</span><span class="v" id="r-origin">—</span></div>
+      <div class="row"><span class="k">PROMPT</span><span class="v hot" id="r-prompt">—</span></div>
+      <div class="row"><span class="k">LATENCY</span><span class="v" id="r-latency">—</span></div>
+      <div class="row"><span class="k">ENTITIES</span><span class="v" id="r-count">—</span></div>
+      <div class="row"><span class="k">SHAPE</span><span class="v" id="r-shape">— normalize via xrai-mappers</span></div>
+    </div>
+  </div>
+
+  <!-- TOP RIGHT · tier ladder per RFC 0012 -->
+  <div class="hud tr">
+    <div class="reveal d3">
+      <div class="ticks">───── R F C · 0012 ┐</div>
+      <div style="margin: 12px 0 6px;">
+        <span style="color: var(--ink-dim); font-size: 9px; text-transform: uppercase; letter-spacing: 0.3em;">tier ladder</span>
+      </div>
+      <div class="ladder" id="ladder"></div>
+      <div style="margin-top: 14px; font-size: 9px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.2em;">
+        engine · three.js r160
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM LEFT · entity catalog -->
+  <div class="hud bl">
+    <div class="specimen reveal d4">
+      <div class="row"><span class="k">CATALOG</span><span class="v" id="r-catalog-summary">awaiting scene</span></div>
+      <div class="catalog" id="catalog"></div>
+    </div>
+
+    <div class="cmd reveal d5">
+      <span class="prompt">▸</span>
+      <input id="cmd-input" type="text" placeholder="load url · drag .xrai.json · or paste json"
+             autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <!-- BOTTOM RIGHT · runtime / provider chain -->
+  <div class="hud br">
+    <div class="reveal d4" style="font-size: 9px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.28em;">
+      runtime chain
+    </div>
+    <div class="reveal d5" id="chain" style="margin-top: 6px; font-size: 11px;">
+      <div class="row right"><span class="v">loadXRAI</span><span class="k">/ 235 loc</span></div>
+      <div class="row right"><span class="v">normalizeToXrai</span><span class="k">/ 25 loc</span></div>
+      <div class="row right"><span class="v hot" id="r-status">idle</span><span class="k">/ status</span></div>
+    </div>
+    <div class="reveal d5 ticks" style="margin-top: 18px;">───── └</div>
+  </div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { loadXRAI } from './runtimes/threejs/src/index.js';
+  import { normalizeToXrai } from './runtimes/threejs/src/xrai-mappers.js';
+
+  // ────────────────────────────────────────────────────────────────────────
+  // SCENE BOOT
+  // ────────────────────────────────────────────────────────────────────────
+  const stage    = document.getElementById('stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0);
+  stage.appendChild(renderer.domElement);
+
+  const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.01, 100);
+  camera.position.set(1.2, 0.9, 2.6);
+
+  const scene = new THREE.Scene();
+  scene.fog   = new THREE.Fog(0x0a0e0c, 5, 18);
+
+  // measurement grid — concrete instrument signal under the entities
+  const grid = new THREE.GridHelper(10, 40, 0x3a423d, 0x1f2422);
+  grid.position.y = -0.001;
+  scene.add(grid);
+
+  // key + fill — refined, not stage-lit
+  const key  = new THREE.DirectionalLight(0xfff4d6, 1.05); key.position.set(3, 4, 2); scene.add(key);
+  const fill = new THREE.AmbientLight(0xc9ff00, 0.10);     scene.add(fill);
+  const rim  = new THREE.DirectionalLight(0xff5c1f, 0.35); rim.position.set(-2, 2, -3); scene.add(rim);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.06;
+  controls.target.set(0, 0.35, -1.4);
+  controls.update();
+
+  let xraiGroup = null;
+  let entitiesIndex = new Map();
+
+  function clearScene() {
+    if (xraiGroup) {
+      scene.remove(xraiGroup);
+      xraiGroup.traverse(o => { o.geometry?.dispose?.(); o.material?.dispose?.(); });
+      xraiGroup = null;
+    }
+    entitiesIndex.clear();
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // INGEST · normalize legacy or canonical → render via loadXRAI
+  // ────────────────────────────────────────────────────────────────────────
+  async function ingest(anyShape, sourceLabel = 'inline') {
+    setStatus('ingesting', 'hot');
+    clearScene();
+    try {
+      const doc = normalizeToXrai(anyShape, { llmName: 'unknown', voicePrompt: anyShape?.metadata?.voice_prompt });
+      const { scene: group, entities } = loadXRAI(doc, THREE);
+      scene.add(group);
+      xraiGroup = group;
+      entitiesIndex = entities;
+      paintReadout(doc, sourceLabel);
+      paintCatalog(doc);
+      highlightTiers(doc);
+      setStatus('rendered', 'hot');
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message || 'parse error', 'crit');
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // READOUTS · specimen card, catalog, tier ladder
+  // ────────────────────────────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+
+  function paintReadout(doc, sourceLabel) {
+    $('r-id').textContent       = doc.id || '—';
+    $('r-author').textContent   = doc.author ? `${doc.author.type} ${doc.author.id || ''}`.trim() : '—';
+    $('r-origin').textContent   = doc.origin ? `${doc.origin.app}/${doc.origin.version} · ${doc.origin.scene || ''}` : '—';
+    $('r-prompt').textContent   = doc.metadata?.voice_prompt || '— no prompt metadata';
+    $('r-latency').textContent  = doc.metadata?.latency_ms != null ? `${doc.metadata.latency_ms} ms` : '—';
+    $('r-count').textContent    = `${doc.scene.entities.length} · ${doc.scene.relations?.length || 0} rel`;
+    $('r-shape').innerHTML      = `<span class="v">${sourceLabel}</span>`;
+  }
+
+  function glyphFor(type) {
+    if (type.startsWith('object.primitive')) return '◧';
+    if (type === 'object.glb')               return '◇';
+    if (type === 'object.hologram')          return '◉';
+    if (type === 'object.emitter')           return '✦';
+    if (type === 'object.light')             return '✺';
+    if (type === 'object.paint-stroke')      return '〰';
+    if (type === 'object.wire-source')       return '⌁';
+    return '○';
+  }
+
+  function paintCatalog(doc) {
+    const ents = doc.scene.entities;
+    $('r-catalog-summary').textContent = `${ents.length} specimen${ents.length === 1 ? '' : 's'}`;
+    const wrap = $('catalog');
+    wrap.innerHTML = '';
+    ents.forEach(ent => {
+      const row = document.createElement('div');
+      row.className = 'entity';
+      const p = ent.transform?.position || [0,0,0];
+      row.innerHTML = `
+        <span class="glyph">${glyphFor(ent.type)}</span>
+        <span><span class="id">${ent.id}</span> · <span class="type">${ent.type.replace('object.', '')}</span></span>
+        <span class="pos">${p.map(n => Number(n).toFixed(2).padStart(6, ' ')).join(' ')}</span>
+      `;
+      row.addEventListener('mouseenter', () => focusEntity(ent.id));
+      row.addEventListener('mouseleave', () => unfocusEntity());
+      wrap.appendChild(row);
+    });
+  }
+
+  // Tier ladder builds once; highlights mark which tier the doc activates.
+  // T0 ID, T2 ASCII, T3 grammar, T4 emoji, T8 voxels, T11 mesh, T16 hologram, T19 neural
+  const TIERS = [
+    [ 0, 'ID'],
+    [ 2, 'ASCII'],
+    [ 3, 'GRAMMAR'],
+    [ 4, 'EMOJI'],
+    [ 8, 'VOXELS'],
+    [11, 'MESH'],
+    [16, 'HOLOGRAM'],
+    [19, 'NEURAL'],
+  ];
+  function buildLadder() {
+    const wrap = $('ladder');
+    TIERS.slice().reverse().forEach(([n, label]) => {
+      const t = document.createElement('div'); t.className = 'tier'; t.textContent = `T${String(n).padStart(2,'0')} · ${label}`;
+      const b = document.createElement('div'); b.className = 'bar';
+      wrap.appendChild(t); wrap.appendChild(b);
+    });
+  }
+  function highlightTiers(doc) {
+    const ents = doc.scene.entities;
+    const has = {
+      hologram: ents.some(e => e.type === 'object.hologram'),
+      primitive: ents.some(e => e.type === 'object.primitive'),
+      glb: ents.some(e => e.type === 'object.glb'),
+    };
+    const tier = has.hologram ? 16 : (has.glb || has.primitive ? 11 : 0);
+    const children = $('ladder').children;
+    // every 2 children = (tier label, bar) per row
+    const reversed = TIERS.slice().reverse();
+    for (let i = 0; i < reversed.length; i++) {
+      const [n] = reversed[i];
+      const t = children[i*2];
+      const b = children[i*2 + 1];
+      t.parentElement.classList.remove('active','reachable');
+      // wrap each (label, bar) pair in a group so :active styles work — easier: toggle classes on both
+      [t, b].forEach(el => el.classList.remove('active','reachable'));
+      if (n === tier) { t.classList.add('active'); b.classList.add('active'); }
+      else if (n < tier) { t.classList.add('reachable'); b.classList.add('reachable'); }
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // INTERACTION · raycaster + cursor readout
+  // ────────────────────────────────────────────────────────────────────────
+  const raycaster = new THREE.Raycaster();
+  const pointer   = new THREE.Vector2();
+  const readoutEl = $('cursor-readout');
+  let focusedId   = null;
+
+  function focusEntity(id) {
+    const obj = entitiesIndex.get(id);
+    if (!obj) return;
+    focusedId = id;
+    // gentle scale-up pulse instead of selection ring — restrained.
+    obj.scale.multiplyScalar(1.06);
+    setTimeout(() => obj.scale.divideScalar(1.06), 240);
+  }
+  function unfocusEntity() { focusedId = null; }
+
+  window.addEventListener('pointermove', (e) => {
+    pointer.x = (e.clientX / window.innerWidth)  *  2 - 1;
+    pointer.y = (e.clientY / window.innerHeight) * -2 + 1;
+    if (!xraiGroup) { readoutEl.classList.remove('on'); return; }
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(xraiGroup.children, true);
+    if (hits.length) {
+      const hit = hits[0].object;
+      const p = hits[0].point;
+      readoutEl.textContent = `${hit.name || 'unnamed'} · [${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}]`;
+      readoutEl.style.left = (e.clientX + 14) + 'px';
+      readoutEl.style.top  = (e.clientY + 14) + 'px';
+      readoutEl.classList.add('on');
+    } else {
+      readoutEl.classList.remove('on');
+    }
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // INPUT · URL ?doc=… · drag-drop · paste · command bar
+  // ────────────────────────────────────────────────────────────────────────
+  function setStatus(text, kind = '') {
+    const el = $('r-status');
+    el.textContent = text;
+    el.classList.remove('hot','crit');
+    if (kind === 'hot') el.classList.add('hot');
+    if (kind === 'crit') el.classList.add('crit');
+  }
+
+  async function loadFromUrl(url) {
+    setStatus(`fetch ${url}`, 'hot');
+    try {
+      const r = await fetch(url, { cache: 'no-cache' });
+      if (!r.ok) throw new Error(`http ${r.status}`);
+      const j = await r.json();
+      await ingest(j, url.split('/').slice(-1)[0]);
+    } catch (e) {
+      setStatus(`fetch failed · ${e.message}`, 'crit');
+    }
+  }
+
+  const cmd = $('cmd-input');
+  cmd.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const v = cmd.value.trim();
+    if (!v) return;
+    cmd.value = '';
+    if (v.startsWith('{')) {
+      try { ingest(JSON.parse(v), 'pasted'); } catch (err) { setStatus(err.message, 'crit'); }
+    } else {
+      loadFromUrl(v);
+    }
+  });
+
+  window.addEventListener('dragover', e => { e.preventDefault(); });
+  window.addEventListener('drop', async e => {
+    e.preventDefault();
+    const f = e.dataTransfer.files?.[0];
+    if (!f) return;
+    const text = await f.text();
+    try { ingest(JSON.parse(text), f.name); } catch (err) { setStatus(err.message, 'crit'); }
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // RENDER LOOP
+  // ────────────────────────────────────────────────────────────────────────
+  // ── RETICLE / LATTICE / AMBIENT ─────────────────────────────────────────
+  // Projects entity world bounds → screen-space corner-tick reticles,
+  // draws dotted constellation lattice between every visible pair,
+  // and animates ~28 drifting ambient points around the scene volume.
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const reticleLayer = document.getElementById('reticle-layer');
+  const reticlesG    = document.getElementById('reticles');
+  const latticeG     = document.getElementById('lattice');
+  const ambientG     = document.getElementById('ambient');
+  const reticleByEntId = new Map();
+  const tmpVec = new THREE.Vector3();
+  const tmpBox = new THREE.Box3();
+
+  // Pre-seed ambient drift points (one-time)
+  const AMBIENT_COUNT = 28;
+  const ambientPoints = Array.from({ length: AMBIENT_COUNT }, () => ({
+    pos: new THREE.Vector3((Math.random() - 0.5) * 4.5,
+                            Math.random() * 1.8 - 0.25,
+                            -1.5 + (Math.random() - 0.5) * 3.5),
+    v:   new THREE.Vector3((Math.random() - 0.5) * 0.0008,
+                            (Math.random() - 0.5) * 0.0004,
+                            (Math.random() - 0.5) * 0.0008),
+    el:  (() => { const c = document.createElementNS(SVG_NS, 'circle'); c.setAttribute('r', '0.8'); ambientG.appendChild(c); return c; })(),
+  }));
+
+  function ensureReticleEl(entId) {
+    if (reticleByEntId.has(entId)) return reticleByEntId.get(entId);
+    const g = document.createElementNS(SVG_NS, 'g');
+    g.classList.add('ret');
+    g.dataset.entId = entId;
+    for (const c of ['tl','tr','br','bl']) {
+      const p = document.createElementNS(SVG_NS, 'path');
+      p.classList.add('corner');
+      p.dataset.corner = c;
+      g.appendChild(p);
+    }
+    const dot = document.createElementNS(SVG_NS, 'circle');
+    dot.classList.add('pulse');
+    g.appendChild(dot);
+    const lbl = document.createElementNS(SVG_NS, 'text');
+    lbl.classList.add('body');
+    g.appendChild(lbl);
+    reticlesG.appendChild(g);
+    reticleByEntId.set(entId, g);
+    return g;
+  }
+
+  function projectEntity(obj) {
+    tmpBox.setFromObject(obj);
+    if (tmpBox.isEmpty()) {
+      tmpVec.setFromMatrixPosition(obj.matrixWorld);
+      tmpBox.set(tmpVec.clone().subScalar(0.08), tmpVec.clone().addScalar(0.08));
+    }
+    const corners = [
+      [tmpBox.min.x, tmpBox.min.y, tmpBox.min.z], [tmpBox.max.x, tmpBox.min.y, tmpBox.min.z],
+      [tmpBox.min.x, tmpBox.max.y, tmpBox.min.z], [tmpBox.max.x, tmpBox.max.y, tmpBox.min.z],
+      [tmpBox.min.x, tmpBox.min.y, tmpBox.max.z], [tmpBox.max.x, tmpBox.min.y, tmpBox.max.z],
+      [tmpBox.min.x, tmpBox.max.y, tmpBox.max.z], [tmpBox.max.x, tmpBox.max.y, tmpBox.max.z],
+    ];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, behind = 0;
+    const w = window.innerWidth, h = window.innerHeight;
+    for (const [x, y, z] of corners) {
+      tmpVec.set(x, y, z).project(camera);
+      if (tmpVec.z >= 1) { behind++; continue; }
+      const sx = (tmpVec.x + 1) * 0.5 * w;
+      const sy = (-tmpVec.y + 1) * 0.5 * h;
+      if (sx < minX) minX = sx;
+      if (sy < minY) minY = sy;
+      if (sx > maxX) maxX = sx;
+      if (sy > maxY) maxY = sy;
+    }
+    if (behind > 6 || !isFinite(minX)) return null;
+    const pad = 8;
+    return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
+  }
+
+  function updateReticles() {
+    const w = window.innerWidth, h = window.innerHeight;
+    reticleLayer.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    reticleLayer.setAttribute('width', w);
+    reticleLayer.setAttribute('height', h);
+
+    // Ambient drift points always run, even when no scene loaded — keeps the layer alive
+    for (const p of ambientPoints) {
+      p.pos.add(p.v);
+      if (Math.abs(p.pos.x) > 2.8) p.v.x *= -1;
+      if (Math.abs(p.pos.z + 1.5) > 2.8) p.v.z *= -1;
+      if (p.pos.y > 1.8 || p.pos.y < -0.3) p.v.y *= -1;
+      tmpVec.copy(p.pos).project(camera);
+      if (tmpVec.z >= 1) { p.el.setAttribute('opacity', '0'); continue; }
+      p.el.setAttribute('cx', (tmpVec.x + 1) * 0.5 * w);
+      p.el.setAttribute('cy', (-tmpVec.y + 1) * 0.5 * h);
+      p.el.setAttribute('opacity', (0.08 + 0.10 * Math.sin(performance.now() * 0.001 + p.pos.x)).toFixed(3));
+    }
+
+    if (!xraiGroup) {
+      for (const id of reticleByEntId.keys()) { reticleByEntId.get(id).remove(); }
+      reticleByEntId.clear();
+      latticeG.innerHTML = '';
+      return;
+    }
+
+    const currentIds = new Set();
+    const centers = [];
+
+    for (const [entId, obj] of entitiesIndex) {
+      const r = projectEntity(obj);
+      if (!r) continue;
+      currentIds.add(entId);
+      const g = ensureReticleEl(entId);
+      const TICK = 12;
+      g.querySelector('[data-corner="tl"]').setAttribute('d', `M ${r.x} ${r.y + TICK} L ${r.x} ${r.y} L ${r.x + TICK} ${r.y}`);
+      g.querySelector('[data-corner="tr"]').setAttribute('d', `M ${r.x + r.w - TICK} ${r.y} L ${r.x + r.w} ${r.y} L ${r.x + r.w} ${r.y + TICK}`);
+      g.querySelector('[data-corner="br"]').setAttribute('d', `M ${r.x + r.w} ${r.y + r.h - TICK} L ${r.x + r.w} ${r.y + r.h} L ${r.x + r.w - TICK} ${r.y + r.h}`);
+      g.querySelector('[data-corner="bl"]').setAttribute('d', `M ${r.x + TICK} ${r.y + r.h} L ${r.x} ${r.y + r.h} L ${r.x} ${r.y + r.h - TICK}`);
+      const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+      const pulse = g.querySelector('.pulse');
+      pulse.setAttribute('cx', cx); pulse.setAttribute('cy', cy);
+      const lbl = g.querySelector('text');
+      const ent = obj.userData?.xrai?.entity;
+      const dist = obj.getWorldPosition(tmpVec).distanceTo(camera.position);
+      lbl.textContent = `${entId} · ${(ent?.type || '').replace('object.', '')} · ${dist.toFixed(2)}m`;
+      lbl.setAttribute('x', cx);
+      lbl.setAttribute('y', r.y + r.h + 14);
+      centers.push({ id: entId, cx, cy });
+    }
+    // prune stale reticles
+    for (const id of reticleByEntId.keys()) {
+      if (!currentIds.has(id)) { reticleByEntId.get(id).remove(); reticleByEntId.delete(id); }
+    }
+    // LATTICE — every pair, fade by screen distance, dropped past 720px
+    let svg = '';
+    for (let i = 0; i < centers.length; i++) {
+      for (let j = i + 1; j < centers.length; j++) {
+        const a = centers[i], b = centers[j];
+        const dist = Math.hypot(a.cx - b.cx, a.cy - b.cy);
+        if (dist > 720) continue;
+        const op = Math.max(0.05, Math.min(0.40, 1 - dist / 720));
+        svg += `<line x1="${a.cx}" y1="${a.cy}" x2="${b.cx}" y2="${b.cy}" stroke-opacity="${op.toFixed(2)}"/>`;
+      }
+    }
+    latticeG.innerHTML = svg;
+  }
+
+  function tick() {
+    requestAnimationFrame(tick);
+    controls.update();
+    // hologram entities: subtle breathing
+    if (xraiGroup) {
+      const t = performance.now() * 0.001;
+      xraiGroup.traverse(o => {
+        if (o.userData?.xrai?.entity?.type === 'object.hologram') {
+          o.position.y = (o.userData.__y0 ??= o.position.y) + Math.sin(t * 1.6) * 0.02;
+        }
+      });
+    }
+    updateReticles();
+    renderer.render(scene, camera);
+  }
+
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  // ────────────────────────────────────────────────────────────────────────
+  // BOOT
+  // ────────────────────────────────────────────────────────────────────────
+  buildLadder();
+  tick();
+
+  const params = new URLSearchParams(location.search);
+  const doc = params.get('doc') || 'examples/02-voice-prompt.xrai.json';
+  loadFromUrl(doc);
+</script>
+</body>
+</html>
