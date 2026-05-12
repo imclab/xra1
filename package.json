@@ -8,6 +8,7 @@
     "conformance": "node runtimes/_conformance/validate_fixtures.cjs",
     "test:browser": "playwright test --config=__tests__/playwright.config.cjs",
     "test:browser:install": "playwright install chromium",
+    "build:kg": "node scripts/build-knowledge-graph.mjs",
     "lk:token": "node scripts/mint-livekit-token.mjs"
   },
   "devDependencies": {

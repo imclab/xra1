@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>XRAI Knowledge Graph — Portals × KnowledgeBase × Karpathy Wiki</title>
+<meta name="description" content="Live collaborative knowledge graph compiled from the Unity-XR-AI KnowledgeBase, Portals v4 specs, and Karpathy's compiled-wiki pattern. Real-time multi-user editing via WebRTC." />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+<style>
+  :root {
+    --bg: #000000; --bg-deeper: #000000; --fg: #FFFFFF; --fg-dim: #CCCCCC;
+    --muted: #666666; --muted-soft: #888888;
+    --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.18);
+    --accent: #F7FFA8; --accent-hover: #FDFFCC;
+    --accent-soft: rgba(247,255,168,0.14); --accent-glow: rgba(247,255,168,0.35);
+    --secondary: #A8A8FF;
+    --doc: #888888; --concept: #F7FFA8; --rfc: #9b59b6;
+    --demo: #2ecc71; --runtime: #3498db; --brand: #FFFFFF;
+    --t-fast: 0.15s; --t-med: 0.3s;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+  html, body {
+    min-height: 100%; background: var(--bg); color: var(--fg);
+    font-family: 'Satoshi', -apple-system, sans-serif;
+    font-size: 14px; line-height: 1.5; overflow: hidden;
+  }
+  a { color: var(--fg); text-decoration: none; transition: color var(--t-fast); }
+  a:hover { color: var(--accent); }
+  #graph { position: fixed; inset: 0; z-index: 1; }
+
+  /* Vignette */
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none; z-index: 5;
+  }
+
+  /* Header bar */
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 12;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 24px; pointer-events: none;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+  }
+  .header > * { pointer-events: auto; }
+  .header .logo {
+    font-family: 'Satoshi', sans-serif; font-weight: 900;
+    font-size: 20px; letter-spacing: -0.04em; color: var(--fg);
+    margin-right: 8px;
+  }
+  .header .logo .dot { color: var(--accent); }
+  .header .sep { width: 1px; height: 18px; background: var(--border-strong); margin: 0 4px; }
+  .header .pill {
+    font-family: 'JetBrains Mono', monospace; font-size: 9.5px;
+    color: var(--accent); text-transform: uppercase; letter-spacing: 0.16em;
+    border: 1px solid var(--accent); padding: 2px 8px; white-space: nowrap;
+  }
+
+  /* Search */
+  .search-wrap {
+    flex: 1; max-width: 380px; position: relative;
+  }
+  .search-wrap input {
+    width: 100%; padding: 6px 10px 6px 28px;
+    background: rgba(0,0,0,0.5); border: 1px solid var(--border-strong);
+    color: var(--accent); border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    outline: none; transition: border-color var(--t-fast);
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap::before {
+    content: '⌕'; position: absolute; left: 8px; top: 50%;
+    transform: translateY(-50%); color: var(--muted); font-size: 14px;
+    pointer-events: none;
+  }
+  #search-results {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 20;
+    background: rgba(9,9,11,0.96); backdrop-filter: blur(12px);
+    border: 1px solid var(--border-strong); border-top: 0;
+    border-radius: 0 0 4px 4px; max-height: 320px; overflow-y: auto;
+    display: none;
+  }
+  .sr-item {
+    padding: 6px 10px; cursor: pointer; font-size: 11px;
+    font-family: 'Satoshi', sans-serif;
+    border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: baseline;
+  }
+  .sr-item:hover { background: var(--accent-soft); }
+  .sr-glyph { font-family: 'JetBrains Mono', monospace; flex-shrink: 0; width: 16px; text-align: center; }
+  .sr-label { flex: 1; color: var(--fg); }
+  .sr-trust { font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: 0.6; }
+
+  /* Nav bar (right side of header) */
+  .nav {
+    display: flex; gap: 0; align-items: center; margin-left: auto;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 0.12em; flex-shrink: 0;
+  }
+  .nav a, .nav button {
+    background: transparent; border: 0; outline: 0;
+    color: var(--muted-soft); padding: 6px 10px; cursor: pointer;
+    font: inherit; text-transform: inherit; letter-spacing: inherit;
+    transition: color var(--t-fast); white-space: nowrap;
+  }
+  .nav a:hover, .nav button:hover { color: var(--fg); }
+  .nav button.active { color: var(--accent); }
+  .nav-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--border-strong); margin: 0 2px; flex-shrink: 0; }
+
+  /* Stats bar (bottom-left) */
+  .stats {
+    position: fixed; bottom: 20px; left: 24px; z-index: 10;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em;
+    display: flex; gap: 16px; pointer-events: none;
+  }
+  .stats .val { color: var(--fg); font-weight: 500; }
+
+  /* Presence dots (bottom-right) */
+  #presence {
+    position: fixed; bottom: 20px; right: 24px; z-index: 10;
+    display: flex; gap: 6px; align-items: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted-soft); text-transform: uppercase; letter-spacing: 0.12em;
+  }
+  .peer-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  /* Legend (bottom-left above stats) */
+  .legend {
+    position: fixed; bottom: 52px; left: 24px; z-index: 10;
+    font-family: 'JetBrains Mono', monospace; pointer-events: auto;
+  }
+  .legend h3 {
+    font-size: 9px; font-weight: 500; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.16em; margin-bottom: 8px;
+  }
+  .legend-row {
+    display: flex; align-items: center; gap: 8px;
+    margin: 2px 0; font-size: 10px; color: var(--muted-soft);
+  }
+  .legend-glyph {
+    display: inline-block; width: 14px; text-align: center; flex-shrink: 0;
+    font-size: 12px; filter: drop-shadow(0 0 3px currentColor);
+  }
+  .legend-hint {
+    font-family: 'Satoshi', sans-serif; font-size: 11px;
+    color: var(--muted); margin-top: 10px; line-height: 1.5;
+  }
+  .legend-hint code {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--fg); border: 1px solid var(--border); padding: 1px 4px; border-radius: 2px;
+  }
+
+  /* Side panel */
+  .panel {
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 20;
+    width: min(620px, 100vw);
+    background: rgba(9,9,11,0.985); backdrop-filter: blur(24px);
+    border-left: 1px solid var(--border); overflow-y: auto;
+    padding: 56px 48px 96px;
+    transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.2,0.8,0.2,1);
+    font-family: 'Satoshi', sans-serif;
+  }
+  .panel.open { transform: translateX(0); }
+  .panel-close {
+    position: absolute; top: 20px; right: 20px;
+    background: transparent; border: 0; color: var(--muted);
+    width: 32px; height: 32px; cursor: pointer; font-size: 22px;
+    font-family: 'JetBrains Mono', monospace; transition: color var(--t-fast);
+  }
+  .panel-close:hover { color: var(--accent); }
+  .panel h1 { font-weight: 900; font-size: 36px; letter-spacing: -0.035em; line-height: 0.95; margin: 0 0 20px; }
+  .panel h2 { font-weight: 700; font-size: 18px; letter-spacing: -0.02em; margin: 32px 0 12px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .panel h2:first-of-type { padding-top: 0; border-top: 0; margin-top: 20px; }
+  .panel p, .panel li { font-size: 14px; line-height: 1.6; color: var(--fg-dim); margin-bottom: 12px; }
+  .panel ul, .panel ol { margin-left: 20px; margin-bottom: 16px; }
+  .panel strong { color: var(--fg); font-weight: 600; }
+  .panel code { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); }
+  .panel pre { background: var(--bg-deeper); border: 1px solid var(--border); padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; margin: 14px 0; overflow-x: auto; color: var(--fg-dim); }
+  .panel pre code { color: inherit; }
+  .panel a { color: var(--fg); border-bottom: 1px solid var(--border-strong); transition: color var(--t-fast); }
+  .panel a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.12em; }
+  .meta span { border: 1px solid var(--border); padding: 2px 8px; border-radius: 999px; margin-right: 6px; }
+
+  /* Trust badge */
+  .trust-badge { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; padding: 2px 6px; border-radius: 3px; margin-left: 6px; }
+  .trust-badge.t1 { color: #5eff8a; border: 1px solid #5eff8a; }
+  .trust-badge.t2 { color: var(--accent); border: 1px solid var(--accent); }
+  .trust-badge.t3 { color: var(--muted); border: 1px solid var(--muted); }
+
+  /* Editor block */
+  .edit-block {
+    border: 1px solid var(--accent); border-radius: 6px;
+    padding: 8px 10px; margin: 0 0 12px;
+    background: rgba(247,255,168,0.06);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  }
+  .edit-block label { display: block; margin-bottom: 4px; color: var(--muted-soft); }
+  .edit-block input, .edit-block textarea {
+    display: block; width: 100%;
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(247,255,168,0.3);
+    color: var(--accent); border-radius: 4px; padding: 4px 6px;
+    font: inherit; outline: none;
+  }
+  .edit-block textarea { min-height: 60px; resize: vertical; }
+  .edit-block .btn-row { display: flex; gap: 8px; margin-top: 6px; }
+  .edit-block button {
+    background: transparent; border: 1px solid rgba(247,255,168,0.4);
+    color: var(--accent); border-radius: 4px; padding: 2px 8px;
+    cursor: pointer; font: inherit;
+  }
+  .edit-block button:hover { background: var(--accent-soft); }
+  .edit-block button.danger { color: #ff6b6b; border-color: rgba(255,107,107,0.4); }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%) translateY(10px);
+    z-index: 30; background: rgba(9,9,11,0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--accent); padding: 10px 18px;
+    font-family: 'Satoshi', sans-serif; font-size: 12px; font-weight: 500;
+    color: var(--fg); max-width: 420px; text-align: center;
+    opacity: 0; transition: opacity 0.22s, transform 0.22s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Loading */
+  .loader {
+    text-align: center; padding: 40px 20px; color: var(--muted);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.16em;
+  }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .header { animation: rise 0.6s cubic-bezier(0.2,0.8,0.2,1) 0.1s both; }
+  .legend { animation: rise 0.6s cubic-bezier(0.2,0.8,0.2,1) 0.5s both; }
+  .stats { animation: rise 0.6s cubic-bezier(0.2,0.8,0.2,1) 0.6s both; }
+
+  @media (max-width: 700px) {
+    .header { padding: 10px 14px; gap: 6px; }
+    .nav { font-size: 9px; }
+    .panel { width: 100vw; padding: 40px 20px 80px; }
+    .legend { bottom: 50px; left: 14px; }
+    .stats { bottom: 10px; left: 14px; font-size: 9px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="graph"></div>
+
+<!-- Header -->
+<div class="header">
+  <a href="index.html" class="logo">XRAI<span class="dot">.</span></a>
+  <div class="sep"></div>
+  <span class="pill">knowledge graph</span>
+  <div class="search-wrap">
+    <input id="search" type="text" placeholder="search nodes… (type / to focus)" autocomplete="off" />
+    <div id="search-results"></div>
+  </div>
+  <div class="nav">
+    <button id="mode-btn" title="Toggle viewer / editor">viewer</button>
+    <span class="nav-sep"></span>
+    <button id="sync-btn" title="Enable real-time collaboration via WebRTC">sync off</button>
+    <span class="nav-sep"></span>
+    <button id="xr-btn" disabled title="Enter immersive WebXR session"><span id="xr-label">WebXR</span></button>
+    <span class="nav-sep"></span>
+    <a href="index.html">main</a>
+    <span class="nav-sep"></span>
+    <a href="https://github.com/imclab/xra1" target="_blank" rel="noopener">repo</a>
+  </div>
+</div>
+
+<!-- Side panel -->
+<aside class="panel" id="panel">
+  <button class="panel-close" onclick="closePanel()">×</button>
+  <div id="panel-content"><div class="loader">Pick a node.</div></div>
+</aside>
+
+<!-- Legend -->
+<div class="legend">
+  <h3>taxonomy</h3>
+  <div class="legend-row"><span class="legend-glyph" style="color:#888888">▦</span> doc / file</div>
+  <div class="legend-row"><span class="legend-glyph" style="color:#F7FFA8">◆</span> concept</div>
+  <div class="legend-row"><span class="legend-glyph" style="color:#9b59b6">◇</span> rfc</div>
+  <div class="legend-row"><span class="legend-glyph" style="color:#2ecc71">▦</span> spec / task</div>
+  <div class="legend-row"><span class="legend-glyph" style="color:#A8A8FF">●</span> person</div>
+  <div class="legend-row"><span class="legend-glyph" style="color:#666666">▤</span> structure</div>
+  <div class="legend-hint">
+    <strong>drag</strong> orbit · <strong>scroll</strong> zoom · <strong>click</strong> read · type <code>/</code> search
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+  <span><span class="val" id="stat-nodes">—</span> nodes</span>
+  <span><span class="val" id="stat-links">—</span> links</span>
+  <span><span class="val" id="stat-docs">—</span> docs</span>
+  <span>built <span class="val" id="stat-built">—</span></span>
+</div>
+
+<!-- Presence -->
+<div id="presence"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- 3d-force-graph deps -->
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<script src="https://unpkg.com/3d-force-graph@1.73.4/dist/3d-force-graph.min.js"></script>
+
+<script type="module">
+import { marked } from 'https://esm.sh/marked@11.1.1';
+
+// ─── Palette (matches index.html) ───
+const PALETTE = {
+  doc: '#888888', concept: '#F7FFA8', rfc: '#9b59b6', spec: '#2ecc71',
+  task: '#2ecc71', plan: '#3498db', archive: '#555555', structure: '#666666',
+  person: '#A8A8FF', external: '#f39c12', xrai: '#f39c12', video: '#ff6b6b',
+};
+const colorFor = g => PALETTE[g] || '#ffffff';
+
+// ─── Toast ───
+const toastEl = document.getElementById('toast');
+function showToast(msg, ms = 2600) {
+  toastEl.textContent = msg; toastEl.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+// ─── Sprite builders (same as index.html) ───
+const SPRITE_CACHE = new Map();
+function makeGlyphSprite(glyph, color, scale = 1) {
+  const key = `${glyph}|${color}|${scale}`;
+  if (SPRITE_CACHE.has(key)) return SPRITE_CACHE.get(key).clone();
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = 'bold 88px "JetBrains Mono", ui-monospace, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = color; ctx.shadowBlur = 14;
+  ctx.fillText(glyph, 64, 68);
+  const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const s = new THREE.Sprite(mat); s.scale.set(10 * scale, 10 * scale, 1);
+  SPRITE_CACHE.set(key, s); return s.clone();
+}
+function makeLabelSprite(label, color = '#e5e5e5') {
+  const key = `lbl:${label}|${color}`;
+  if (SPRITE_CACHE.has(key)) return SPRITE_CACHE.get(key).clone();
+  const c = document.createElement('canvas');
+  const text = label.length > 24 ? label.slice(0, 22) + '…' : label;
+  c.width = 512; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.font = '500 24px "JetBrains Mono", ui-monospace, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const m = ctx.measureText(text);
+  const pad = 10, bw = m.width + pad * 2, bh = 36;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(256 - bw / 2, 32 - bh / 2, bw, bh);
+  ctx.fillStyle = color;
+  ctx.fillText(text, 256, 34);
+  const tex = new THREE.CanvasTexture(c); tex.needsUpdate = true;
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  const s = new THREE.Sprite(mat); s.scale.set(20, 2.5, 1);
+  SPRITE_CACHE.set(key, s); return s.clone();
+}
+
+// ─── State ───
+let graphData = { nodes: [], links: [], meta: {} };
+let editorMode = false;
+let syncInstance = null;
+
+// ─── Load graph data ───
+async function loadGraph() {
+  const res = await fetch('data/portals-knowledge-graph-view.json');
+  if (!res.ok) throw new Error(`Graph data missing (${res.status}). Run: node scripts/build-knowledge-graph.mjs`);
+  return res.json();
+}
+
+// ─── Build force graph ───
+const Graph = window.Graph = ForceGraph3D()(document.getElementById('graph'))
+  .backgroundColor('#000000')
+  .graphData({ nodes: [], links: [] })
+  .nodeColor(n => colorFor(n.group))
+  .nodeVal(n => (n.size || 8) * 0.5)
+  .nodeRelSize(2)
+  .nodeOpacity(0.9)
+  .nodeThreeObject(node => {
+    const group = new THREE.Group();
+    const color = colorFor(node.group);
+    const geo = new THREE.SphereGeometry(1.4 + (node.size || 8) * 0.06, 10, 10);
+    const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85 });
+    group.add(new THREE.Mesh(geo, mat));
+    if (node.glyph) {
+      const gs = makeGlyphSprite(node.glyph, color, 0.7 + (node.size || 8) * 0.02);
+      gs.position.set(0, 5 + (node.size || 8) * 0.1, 0);
+      group.add(gs);
+    }
+    const ls = makeLabelSprite(node.label, '#FFFFFF');
+    ls.position.set(0, -4.5 - (node.size || 8) * 0.06, 0);
+    group.add(ls);
+    return group;
+  })
+  .nodeThreeObjectExtend(false)
+  .nodeLabel(() => '')
+  .linkColor(l => {
+    const src = typeof l.source === 'object' ? l.source : graphData.nodes.find(n => n.id === l.source);
+    if (src?.type === 'structure') return 'rgba(255,255,255,0.04)';
+    return 'rgba(255,255,255,0.12)';
+  })
+  .linkOpacity(0.6)
+  .linkWidth(0.4)
+  .linkDirectionalParticles(l => {
+    const src = typeof l.source === 'object' ? l.source : graphData.nodes.find(n => n.id === l.source);
+    return src?.type === 'structure' ? 0 : 1;
+  })
+  .linkDirectionalParticleSpeed(0.003)
+  .linkDirectionalParticleWidth(0.8)
+  .linkDirectionalParticleColor(() => '#F7FFA8')
+  .onNodeClick(node => {
+    openNode(node);
+    const d = 100;
+    const r = 1 + d / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+    Graph.cameraPosition(
+      { x: (node.x || 1) * r, y: (node.y || 1) * r, z: (node.z || 1) * r },
+      node, 1000
+    );
+    syncInstance?.setSelection(node.id);
+  })
+  .onNodeHover(node => { document.body.style.cursor = node ? 'pointer' : 'default'; });
+
+Graph.d3Force('link').distance(36);
+Graph.d3Force('charge').strength(-90);
+
+const fitGraph = () => Graph.width(window.innerWidth).height(window.innerHeight);
+fitGraph(); window.addEventListener('resize', fitGraph);
+
+// ─── Load and render ───
+loadGraph().then(data => {
+  graphData = data;
+  Graph.graphData({ nodes: data.nodes, links: data.links });
+  document.getElementById('stat-nodes').textContent = data.nodes.length;
+  document.getElementById('stat-links').textContent = data.links.length;
+  document.getElementById('stat-docs').textContent = data.meta?.counts?.documents || '?';
+  document.getElementById('stat-built').textContent = (data.built_at || '').slice(0, 10);
+  showToast(`${data.nodes.length} nodes · ${data.links.length} links loaded`, 3000);
+}).catch(e => {
+  showToast(`Load failed: ${e.message}`, 6000);
+  console.error('[knowledge] load failed:', e);
+});
+
+// ─── Panel ───
+const panel = document.getElementById('panel');
+const panelContent = document.getElementById('panel-content');
+
+async function openNode(node) {
+  panel.classList.add('open');
+  panelContent.innerHTML = `<div class="loader">loading ${node.label}…</div>`;
+  try {
+    // Build meta pills
+    const trustClass = (node.trustTier || 'T2').toLowerCase();
+    const trustBadge = `<span class="trust-badge ${trustClass}">${node.trustTier || 'T2'}</span>`;
+    const pills = `<div class="meta">
+      <span>${node.group}</span>
+      <span>${node.sourceRoot || '?'}</span>
+      ${node.status ? `<span>${node.status}</span>` : ''}
+      ${trustBadge}
+    </div>`;
+
+    // Try to fetch file content
+    let mdText;
+    if (node.file && /^https?:\/\//.test(node.file)) {
+      try {
+        const r = await fetch(node.file);
+        mdText = r.ok ? await r.text() : null;
+      } catch { mdText = null; }
+    }
+    if (!mdText) {
+      // Build from node metadata
+      mdText = `# ${node.label}\n\n${node.summary || ''}\n\n`;
+      if (node.tags?.length) mdText += `**Tags:** ${node.tags.join(', ')}\n\n`;
+      if (node.sourcePath) mdText += `**Source:** \`${node.sourcePath}\`\n\n`;
+      if (node.platforms?.length) mdText += `**Platforms:** ${node.platforms.join(', ')}\n\n`;
+      if (node.file) mdText += `**File:** [${node.file}](${node.file})\n\n`;
+    }
+
+    const html = marked.parse(mdText);
+    const editor = editorMode ? renderEditorBlock(node) : '';
+    panelContent.innerHTML = editor + pills + html;
+    panelContent.scrollTop = 0;
+    if (editor) wireEditorBlock(node);
+  } catch (e) {
+    panelContent.innerHTML = `<h1>${node.label}</h1><p>Failed: ${e.message}</p>`;
+  }
+}
+
+function closePanel() {
+  panel.classList.remove('open');
+  syncInstance?.setSelection(null);
+}
+window.closePanel = closePanel;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+// ─── Editor ───
+function renderEditorBlock(node) {
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return `<div class="edit-block">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;opacity:0.7;">
+      <span>EDIT · ${esc(node.id).slice(0, 50)}</span><span style="flex:1;"></span>
+      <button class="danger" data-act="delete">delete</button>
+    </div>
+    <label>label<input data-field="label" value="${esc(node.label)}" /></label>
+    <label>group<input data-field="group" value="${esc(node.group)}" /></label>
+    <label>summary<textarea data-field="summary">${esc(node.summary)}</textarea></label>
+    <label>tags (comma-separated)<input data-field="tags" value="${esc((node.tags || []).join(', '))}" /></label>
+  </div>`;
+}
+function wireEditorBlock(node) {
+  panelContent.querySelectorAll('.edit-block input[data-field], .edit-block textarea[data-field]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const f = inp.dataset.field;
+      if (f === 'tags') node.tags = inp.value.split(',').map(t => t.trim()).filter(Boolean);
+      else node[f] = inp.value;
+      Graph.refresh?.();
+      syncInstance?.upsertNode(node);
+    });
+  });
+  panelContent.querySelector('[data-act="delete"]')?.addEventListener('click', () => {
+    if (!confirm(`Delete "${node.label}" + connected links?`)) return;
+    const data = Graph.graphData();
+    const nxt = data.nodes.filter(n => n.id !== node.id);
+    const nxtL = data.links.filter(l => {
+      const s = typeof l.source === 'object' ? l.source.id : l.source;
+      const t = typeof l.target === 'object' ? l.target.id : l.target;
+      return s !== node.id && t !== node.id;
+    });
+    Graph.graphData({ nodes: nxt, links: nxtL });
+    syncInstance?.removeNode(node.id);
+    closePanel();
+  });
+}
+
+// ─── Mode toggle ───
+const modeBtn = document.getElementById('mode-btn');
+modeBtn.addEventListener('click', () => {
+  editorMode = !editorMode;
+  modeBtn.textContent = editorMode ? 'editor' : 'viewer';
+  modeBtn.classList.toggle('active', editorMode);
+  showToast(editorMode ? 'Editor mode — click nodes to edit' : 'Viewer mode', 2000);
+});
+
+// ─── Sync toggle ───
+const syncBtn = document.getElementById('sync-btn');
+syncBtn.addEventListener('click', async () => {
+  if (syncInstance) {
+    syncInstance.destroy();
+    syncInstance = null;
+    syncBtn.textContent = 'sync off';
+    syncBtn.classList.remove('active');
+    document.getElementById('presence').innerHTML = '';
+    showToast('Sync disconnected', 2000);
+    return;
+  }
+  try {
+    syncBtn.textContent = 'connecting…';
+    const { KnowledgeSync } = await import('./js/knowledge-sync.js');
+    const room = new URLSearchParams(location.search).get('room') || 'xrai-knowledge';
+    syncInstance = new KnowledgeSync({ room });
+    await syncInstance.connect();
+    syncInstance.seed(graphData);
+    syncBtn.textContent = `sync: ${room.slice(0, 12)}`;
+    syncBtn.classList.add('active');
+
+    syncInstance.addEventListener('presence', e => {
+      const peers = e.detail.peers;
+      const el = document.getElementById('presence');
+      el.innerHTML = peers.map(p =>
+        `<span class="peer-dot" style="color:${p.color || '#F7FFA8'};background:${p.color || '#F7FFA8'}" title="${p.name}"></span>`
+      ).join('') + `<span>${peers.length} peer${peers.length !== 1 ? 's' : ''}</span>`;
+    });
+
+    syncInstance.addEventListener('graph-updated', e => {
+      const snap = e.detail.graph;
+      if (snap.nodes?.length) Graph.graphData({ nodes: snap.nodes, links: snap.links });
+    });
+
+    // Share room URL
+    const url = new URL(location.href);
+    url.searchParams.set('room', room);
+    showToast(`Syncing room "${room}" — share: ${url.toString().slice(0, 80)}…`, 5000);
+  } catch (e) {
+    syncBtn.textContent = 'sync off';
+    showToast(`Sync failed: ${e.message}`, 4000);
+    console.error('[sync] failed:', e);
+  }
+});
+
+// Auto-join if room param present
+if (new URLSearchParams(location.search).get('room')) {
+  setTimeout(() => syncBtn.click(), 1500);
+}
+
+// ─── Search ───
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+let searchTimeout;
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    const q = searchInput.value.trim().toLowerCase();
+    if (!q || q.length < 2) { searchResults.style.display = 'none'; return; }
+    const hits = graphData.nodes
+      .filter(n => {
+        const haystack = `${n.label} ${n.summary || ''} ${(n.tags || []).join(' ')} ${n.sourcePath || ''} ${n.group}`.toLowerCase();
+        return haystack.includes(q);
+      })
+      .slice(0, 20);
+    if (!hits.length) {
+      searchResults.innerHTML = '<div class="sr-item" style="color:var(--muted);">no matches</div>';
+    } else {
+      searchResults.innerHTML = hits.map(n => `
+        <div class="sr-item" data-id="${n.id}">
+          <span class="sr-glyph" style="color:${colorFor(n.group)}">${n.glyph || '⬢'}</span>
+          <span class="sr-label">${n.label}</span>
+          <span class="sr-trust">${n.trustTier || ''}</span>
+        </div>
+      `).join('');
+    }
+    searchResults.style.display = 'block';
+  }, 180);
+});
+
+searchResults.addEventListener('click', e => {
+  const item = e.target.closest('.sr-item');
+  if (!item) return;
+  const node = graphData.nodes.find(n => n.id === item.dataset.id);
+  if (!node) return;
+  searchResults.style.display = 'none';
+  searchInput.value = '';
+  // Find the live node in graph data (has x/y/z)
+  const live = Graph.graphData().nodes.find(n => n.id === node.id);
+  if (live) {
+    openNode(live);
+    const d = 100, r = 1 + d / Math.hypot(live.x || 1, live.y || 1, live.z || 1);
+    Graph.cameraPosition(
+      { x: (live.x || 1) * r, y: (live.y || 1) * r, z: (live.z || 1) * r },
+      live, 1000
+    );
+  } else {
+    openNode(node);
+  }
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) searchResults.style.display = 'none';
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement !== searchInput) {
+    e.preventDefault(); searchInput.focus();
+  }
+  if (e.key === 'Escape' && document.activeElement === searchInput) {
+    searchInput.blur(); searchInput.value = '';
+    searchResults.style.display = 'none';
+  }
+});
+
+// ─── WebXR check ───
+const xrBtn = document.getElementById('xr-btn');
+const xrLabel = document.getElementById('xr-label');
+(async () => {
+  if (!navigator.xr) { xrLabel.textContent = 'WebXR n/a'; return; }
+  try {
+    const arOK = await navigator.xr.isSessionSupported('immersive-ar');
+    const vrOK = await navigator.xr.isSessionSupported('immersive-vr');
+    if (arOK) { xrLabel.textContent = 'Enter AR'; xrBtn.disabled = false; xrBtn.dataset.mode = 'immersive-ar'; }
+    else if (vrOK) { xrLabel.textContent = 'Enter VR'; xrBtn.disabled = false; xrBtn.dataset.mode = 'immersive-vr'; }
+    else xrLabel.textContent = 'WebXR off';
+  } catch { xrLabel.textContent = 'WebXR err'; }
+})();
+xrBtn.addEventListener('click', () => {
+  showToast('WebXR immersive session — see VIEWER_ARCHITECTURE.md for runtime hookup', 4000);
+});
+
+// ─── Auto-rotate when idle ───
+let userInteracted = false;
+Graph.controls().addEventListener('start', () => { userInteracted = true; });
+let angle = 0;
+setInterval(() => {
+  if (userInteracted) return;
+  angle += 0.0015;
+  Graph.cameraPosition({ x: Math.cos(angle) * 500, y: 80, z: Math.sin(angle) * 500 });
+}, 30);
+</script>
+</body>
+</html>
