@@ -12,6 +12,21 @@ const ML_CSS = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css';
 const ML_JS  = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
 const STYLE  = 'https://tiles.openfreemap.org/styles/liberty'; // free, no key
 
+const LS_KEY = 'xrai.geo.pins.v1';
+const BC_NAME = 'xrai.geo.pins';
+
+function loadPins(){
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+  catch { return []; }
+}
+function savePins(pinsMap){
+  try {
+    const arr = [];
+    for (const { data } of pinsMap.values()) arr.push(data);
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+  } catch {}
+}
+
 function loadOnce(){
   if(window.__maplibre_loading) return window.__maplibre_loading;
   return window.__maplibre_loading = new Promise((res, rej)=>{
@@ -58,6 +73,7 @@ export async function mount(host, scene, ctx){
 
   const pins = new Map(); // id → { marker, data }
   let pickMode = false;
+  const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(BC_NAME) : null;
 
   function makeEl(kind){
     const d = document.createElement('div');
@@ -83,19 +99,29 @@ export async function mount(host, scene, ctx){
       const ll = m.getLngLat();
       p.lng = ll.lng; p.lat = ll.lat;
       ctx?.bus?.emit?.('geo.pin.move', { id:p.id, lng:p.lng, lat:p.lat });
+      savePins(pins);
+      bc?.postMessage({ kind:'move', id:p.id, lng:p.lng, lat:p.lat });
     });
     m.getElement().addEventListener('click', ()=> setTimeout(()=>{
       const btn = document.querySelector(`[data-rm="${p.id}"]`);
       if(btn) btn.onclick = ()=> removePin(p.id);
     }, 50));
     pins.set(p.id, { marker: m, data: p });
-    if(!fromBus) ctx?.bus?.emit?.('geo.pin.add', p);
+    if(!fromBus){
+      ctx?.bus?.emit?.('geo.pin.add', p);
+      savePins(pins);
+      bc?.postMessage({ kind:'add', pin:p });
+    }
   }
 
   function removePin(id, fromBus){
     const e = pins.get(id); if(!e) return;
     e.marker.remove(); pins.delete(id);
-    if(!fromBus) ctx?.bus?.emit?.('geo.pin.remove', { id });
+    if(!fromBus){
+      ctx?.bus?.emit?.('geo.pin.remove', { id });
+      savePins(pins);
+      bc?.postMessage({ kind:'remove', id });
+    }
   }
 
   // map click → drop pin (when pick mode active)
@@ -129,6 +155,20 @@ export async function mount(host, scene, ctx){
     const e = pins.get(p.id); if(!e) return;
     e.marker.setLngLat([p.lng, p.lat]); e.data.lng = p.lng; e.data.lat = p.lat;
   });
+
+  // cross-tab sync via BroadcastChannel — fromBus=true short-circuits the re-emit
+  if(bc) bc.onmessage = (ev)=>{
+    const m = ev.data || {};
+    if(m.kind === 'add' && m.pin) addPin(m.pin, true);
+    else if(m.kind === 'remove' && m.id) removePin(m.id, true);
+    else if(m.kind === 'move' && m.id){
+      const e = pins.get(m.id); if(!e) return;
+      e.marker.setLngLat([m.lng, m.lat]); e.data.lng = m.lng; e.data.lat = m.lat;
+    }
+  };
+
+  // restore persisted pins (before scene seed, so seed wins on id collision)
+  for(const p of loadPins()) addPin(p, true);
 
   // ui
   wrap.querySelector('#gm-pin').onclick = (e)=>{

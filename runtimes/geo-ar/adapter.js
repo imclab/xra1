@@ -8,6 +8,20 @@
 //   geo.pin.move    { id, lng, lat }
 
 const R = 6371000; // earth radius m
+const LS_KEY = 'xrai.geo.pins.v1';
+const BC_NAME = 'xrai.geo.pins';
+
+function loadPins(){
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+  catch { return []; }
+}
+function savePins(pinsMap){
+  try {
+    const arr = [];
+    for (const p of pinsMap.values()) arr.push(p);
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+  } catch {}
+}
 
 // haversine distance + bearing from (lat1,lng1) to (lat2,lng2)
 function geo(a, b){
@@ -30,6 +44,7 @@ export async function mount(host, scene, ctx){
   };
   let heading = 0; // compass deg, 0=N
   const pins = new Map();
+  const bc = ('BroadcastChannel' in window) ? new BroadcastChannel(BC_NAME) : null;
 
   const wrap = document.createElement('div');
   wrap.style.cssText = `position:relative;width:100%;height:100%;background:#000;
@@ -143,11 +158,19 @@ export async function mount(host, scene, ctx){
   function addPin(p, fromBus){
     if(pins.has(p.id)) return;
     pins.set(p.id, p);
-    if(!fromBus) ctx?.bus?.emit?.('geo.pin.add', p);
+    if(!fromBus){
+      ctx?.bus?.emit?.('geo.pin.add', p);
+      savePins(pins);
+      bc?.postMessage({ kind:'add', pin:p });
+    }
   }
   function rmPin(id, fromBus){
     if(!pins.delete(id)) return;
-    if(!fromBus) ctx?.bus?.emit?.('geo.pin.remove', { id });
+    if(!fromBus){
+      ctx?.bus?.emit?.('geo.pin.remove', { id });
+      savePins(pins);
+      bc?.postMessage({ kind:'remove', id });
+    }
   }
   ctx?.bus?.on?.('geo.pin.add',    (_t,p)=> addPin(p, true));
   ctx?.bus?.on?.('geo.pin.remove', (_t,p)=> rmPin(p.id, true));
@@ -155,6 +178,20 @@ export async function mount(host, scene, ctx){
     const e = pins.get(p.id); if(!e) return;
     e.lng = p.lng; e.lat = p.lat;
   });
+
+  // cross-tab sync — fromBus=true short-circuits re-emit
+  if(bc) bc.onmessage = (ev)=>{
+    const m = ev.data || {};
+    if(m.kind === 'add' && m.pin) addPin(m.pin, true);
+    else if(m.kind === 'remove' && m.id) rmPin(m.id, true);
+    else if(m.kind === 'move' && m.id){
+      const e = pins.get(m.id); if(!e) return;
+      e.lng = m.lng; e.lat = m.lat;
+    }
+  };
+
+  // restore persisted pins
+  for(const p of loadPins()) addPin(p, true);
 
   // ── ui
   wrap.querySelector('#ga-cam').onclick  = startCam;
