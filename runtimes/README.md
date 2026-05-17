@@ -15,6 +15,25 @@ One XRAI document. Many renderers. Each adapter ingests the same v1.0 JSON and p
 | **Godot** | `godot/` (not yet) | — | Community-welcomed |
 | **Bevy** | `bevy/` (not yet) | — | Community-welcomed |
 
+## Live ESM adapters (hub-loadable, no build)
+
+These ship the `mount(host, scene, ctx)` contract and load directly into `runtimes/_hub.html` via dynamic ESM import. No engine-native parse — they consume bus events + `scene.entities[]` and render with CDN libs.
+
+| Adapter | Directory | Renders |
+|---|---|---|
+| **echarts** | `echarts/` | force graph |
+| **remix** | `remix/` | document remix |
+| **shader** | `shader/` | shader playground |
+| **_ar-needle** | `_ar-needle/` | AR (Needle engine) |
+| **xrai** | `xrai/` | reference XRAI viewer |
+| **gesture** | `gesture/` | gesture playground |
+| **forest** | `forest/` | forest scene |
+| **geo-map** | `geo-map/` | MapLibre + persistent pins + cross-tab sync ([README](geo-map/README.md)) |
+| **geo-ar** | `geo-ar/` | phone-camera AR companion to geo-map ([README](geo-ar/README.md)) |
+| **jarvis** | `jarvis/` | node-graph wire editor (reads `ctx.registry`, emits `hub.swap`) |
+
+Persistence convention for adapters that hold user state: `localStorage` key `xrai.<adapter>.<resource>.v1` + `BroadcastChannel('xrai.<resource>')` for cross-tab sync. See `geo-map/adapter.js` for the canonical pattern.
+
 ## Normative contract (every runtime MUST implement)
 
 ```

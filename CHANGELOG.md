@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Hub + hands + geo persistence — 2026-05-17
+
+- **Hub registry exposure** (`runtimes/_hub.html`): generic adapter loader now passes `registry` through `ctx` and subscribes to `bus.on('hub.swap', id)`. Jarvis node-graph adapter can read available runtimes and request a hot-swap mount via the bus. Commit `f1632c4`.
+- **Hands-web double-pinch fix** (`js/hands-web.js`): replaced single threshold + naive rising-edge with hysteresis (`PINCH_GRIP_NORM=0.035` / `PINCH_RELEASE_NORM=0.060`) plus per-hand 280ms cooldown gate. Exactly one `hands:click` per genuine pinch; two-hand simultaneous pinch still fires two clicks (one per hand, intended). Commit `a379c10`.
+- **Geo pin persistence + cross-tab sync** (`runtimes/geo-map/adapter.js`, `runtimes/geo-ar/adapter.js`): pins now survive reload via `localStorage` (key `xrai.geo.pins.v1`) and propagate live across tabs/windows via `BroadcastChannel('xrai.geo.pins')`. Wire format `{ kind: 'add'|'remove'|'move', ... }`. `fromBus=true` flag short-circuits re-emit to prevent loops. Zero infra, ships immediately on push. Commit `d9b70d1`.
+
 ### Site — public preview refresh — 2026-04-30
 
 - **Topnav**: surface `agent` (jarvis.html), `conf` (LiveKit hologram demo), `runtimes` (RUNTIMES.md scoreboard) — three buried pages now first-class.
