@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>xrai · runtime hub · patch bay</title>
+<meta name="description" content="Hot-swap runtime hub for XRAI — icosa gallery, gsplat/SPZ, supersplat, needle WebRTC, rerun.io ARKit playback, three.js, playcanvas, echarts. Mount/unmount without reload.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=JetBrains+Mono:wght@300;400;500;700&display=swap">
+<style>
+:root{
+  --bg:#0d0c0a;
+  --bg-deep:#050403;
+  --ink:#f4ecd8;
+  --ink-dim:#8a826f;
+  --rule:#211e18;
+  --rule-hot:#3a3022;
+  --amber:#ffb000;
+  --amber-soft:rgba(255,176,0,.08);
+  --signal:#ff3b3b;
+  --cyan:#7fffe4;
+  --green:#62ff7a;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;
+  --display:'Fraunces',Georgia,'Times New Roman',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.45;letter-spacing:.01em;overflow-x:hidden}
+body{
+  background-image:
+    radial-gradient(ellipse at 78% -12%, #1c1709 0%, transparent 58%),
+    radial-gradient(ellipse at -10% 110%, #0a1620 0%, transparent 55%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence baseFrequency='.92' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .98 0 0 0 0 .92 0 0 0 0 .78 0 0 0 .055 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  min-height:100vh;
+}
+::selection{background:var(--amber);color:#0d0c0a}
+code{font-family:var(--mono);font-size:.92em;color:var(--amber);background:rgba(255,176,0,.06);padding:1px 5px;border:1px solid #2a2218}
+a{color:var(--cyan)}
+
+/* SCAFFOLD ============================================ */
+.frame{max-width:1480px;margin:0 auto;padding:28px 36px 80px;position:relative}
+.frame::before,.frame::after,
+.bay::before,.bay::after{
+  content:'';position:absolute;width:14px;height:14px;border:1px solid var(--amber);opacity:.6;pointer-events:none
+}
+.frame::before{top:14px;left:18px;border-right:0;border-bottom:0}
+.frame::after{top:14px;right:18px;border-left:0;border-bottom:0}
+
+/* HEADER ============================================ */
+header{
+  display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:end;
+  padding:8px 0 24px;border-bottom:1px solid var(--rule);margin-bottom:30px
+}
+.brand{
+  font-family:var(--display);font-weight:300;font-variation-settings:"opsz" 144,"SOFT" 30;
+  font-size:clamp(54px,7.2vw,104px);line-height:.84;letter-spacing:-.035em;
+  color:var(--ink);
+}
+.brand b{font-weight:900;color:var(--amber);font-style:italic;font-variation-settings:"opsz" 144,"SOFT" 100;text-shadow:0 0 24px rgba(255,176,0,.35)}
+.brand-tag{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-dim);letter-spacing:.4em;text-transform:uppercase;margin-top:14px}
+
+.serial{font-size:10px;color:var(--ink-dim);text-align:center;line-height:1.85;letter-spacing:.06em}
+.serial b{color:var(--cyan);font-weight:500;letter-spacing:.04em}
+
+.system-clock{text-align:right;font-size:11px;color:var(--ink-dim)}
+.system-clock .time{
+  font-family:var(--display);font-weight:400;font-style:italic;font-size:42px;color:var(--ink);
+  letter-spacing:.02em;font-variation-settings:"opsz" 144
+}
+.system-clock .status{display:inline-flex;align-items:center;gap:8px;margin-top:4px;letter-spacing:.16em;text-transform:uppercase}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.32;transform:scale(.85)}}
+
+/* LAYOUT ============================================ */
+.bay{
+  display:grid;grid-template-columns:380px 1fr;gap:0;
+  border:1px solid var(--rule);background:rgba(8,7,5,.65);min-height:74vh;position:relative
+}
+.bay::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.bay::after{bottom:-1px;right:-1px;border-left:0;border-top:0;top:auto}
+.bay-left{border-right:1px solid var(--rule);padding:22px 18px;overflow-y:auto;max-height:80vh}
+.bay-right{position:relative;display:flex;flex-direction:column;min-width:0}
+
+.section-label{
+  font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--amber);
+  padding-bottom:8px;margin-bottom:14px;border-bottom:1px dashed var(--rule-hot);
+  display:flex;justify-content:space-between;align-items:baseline
+}
+.section-label small{color:var(--ink-dim);letter-spacing:.18em;font-size:10px}
+
+/* RUNTIME JACK ============================================ */
+.jack{
+  display:grid;grid-template-columns:20px 1fr auto;gap:12px;align-items:center;
+  padding:11px 10px 11px 8px;border:1px solid transparent;cursor:pointer;
+  transition:border-color .12s, background .12s, transform .12s;
+  margin-bottom:2px;position:relative;
+}
+.jack:hover{border-color:var(--rule-hot);background:var(--amber-soft)}
+.jack:active{transform:translateX(2px)}
+.jack.active{
+  border-color:var(--amber);background:var(--amber-soft);
+  box-shadow:inset 3px 0 0 var(--amber), 0 0 22px rgba(255,176,0,.08)
+}
+.jack-led{
+  width:9px;height:9px;border-radius:50%;background:#2a2620;
+  border:1px solid #3a342a;justify-self:center;position:relative
+}
+.jack-led.live{background:var(--green);box-shadow:0 0 7px var(--green);border-color:transparent}
+.jack-led.stub{background:var(--amber);box-shadow:0 0 7px var(--amber);border-color:transparent}
+.jack-led.down{background:#3a342a}
+.jack.active .jack-led{animation:pulse 1.4s ease-in-out infinite}
+.jack-name{font-weight:500;color:var(--ink);font-size:13px;letter-spacing:.005em}
+.jack-meta{font-size:10px;color:var(--ink-dim);letter-spacing:.04em;margin-top:1px}
+.jack-tag{
+  font-size:9px;padding:3px 7px;border:1px solid var(--rule-hot);color:var(--ink-dim);
+  letter-spacing:.18em;text-transform:uppercase
+}
+.jack.active .jack-tag{border-color:var(--amber);color:var(--amber)}
+.jack-num{
+  position:absolute;top:4px;right:6px;font-size:9px;color:var(--ink-dim);
+  opacity:.5;letter-spacing:.1em;font-variant-numeric:tabular-nums
+}
+
+/* STAGE ============================================ */
+.stage-bar{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:10px 16px;border-bottom:1px solid var(--rule);background:var(--bg-deep);
+  font-size:11px;flex-wrap:wrap
+}
+.stage-bar .ch{display:flex;gap:20px;color:var(--ink-dim);letter-spacing:.08em}
+.stage-bar .ch b{color:var(--cyan);font-weight:500;font-variant-numeric:tabular-nums}
+.stage-bar .ops{display:flex;gap:6px}
+.btn{
+  font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+  background:transparent;color:var(--ink);border:1px solid var(--rule);padding:7px 12px;cursor:pointer;
+  transition:.12s
+}
+.btn:hover{border-color:var(--amber);color:var(--amber)}
+.btn.primary{border-color:var(--amber);color:var(--amber)}
+.btn.danger:hover{border-color:var(--signal);color:var(--signal)}
+
+#stage{
+  flex:1;position:relative;min-height:62vh;
+  background:
+    linear-gradient(180deg,#0a0907 0%,#050403 100%),
+    repeating-linear-gradient(0deg, transparent 0 2px, rgba(255,176,0,.018) 2px 3px);
+  background-blend-mode:normal;
+  overflow:hidden;
+}
+#stage > canvas, #stage > iframe{width:100%;height:100%;display:block;border:0;background:transparent;position:absolute;inset:0}
+.empty{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--ink-dim);text-align:center;padding:40px;font-size:12px;pointer-events:none
+}
+.empty .big{
+  font-family:var(--display);font-style:italic;font-weight:300;font-size:clamp(40px,5vw,68px);
+  color:var(--ink);margin-bottom:18px;letter-spacing:-.025em;line-height:1
+}
+.empty .big i{color:var(--amber);font-style:italic}
+.empty .lo{letter-spacing:.04em;line-height:1.7;max-width:380px}
+.empty kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--rule-hot);padding:2px 6px;color:var(--amber);margin:0 2px}
+
+.scanline{position:absolute;left:0;right:0;top:-4px;height:3px;background:linear-gradient(180deg,transparent,var(--amber),transparent);opacity:0;pointer-events:none;z-index:50}
+.scanline.run{animation:scan .55s linear}
+@keyframes scan{0%{top:-4px;opacity:1}100%{top:100%;opacity:.4}}
+.flash{position:absolute;inset:0;background:var(--amber);opacity:0;pointer-events:none;mix-blend-mode:overlay;z-index:49}
+.flash.run{animation:flash .35s ease-out}
+@keyframes flash{0%{opacity:.55}100%{opacity:0}}
+
+/* GALLERY ============================================ */
+.gallery{position:absolute;inset:0;overflow-y:auto;padding:18px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;align-content:start}
+.gallery .tile{
+  aspect-ratio:1;background:#15110a;border:1px solid var(--rule);position:relative;cursor:pointer;
+  overflow:hidden;transition:.15s
+}
+.gallery .tile:hover{border-color:var(--amber);transform:translateY(-2px)}
+.gallery .tile img{width:100%;height:100%;object-fit:cover;opacity:.86;transition:.25s;display:block}
+.gallery .tile:hover img{opacity:1;transform:scale(1.04)}
+.gallery .tile .cap{
+  position:absolute;left:0;right:0;bottom:0;padding:7px 9px;
+  background:linear-gradient(0deg,#000 0%,transparent 100%);
+  font-size:10px;color:var(--ink);letter-spacing:.03em
+}
+.gallery .note{grid-column:1/-1;color:var(--ink-dim);font-size:11px;padding:8px 4px;letter-spacing:.06em}
+.gallery .note.err{color:var(--signal)}
+
+/* STUB CARD ============================================ */
+.stub-card{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px;text-align:center}
+.stub-card .h{font-family:var(--display);font-style:italic;font-weight:300;font-size:clamp(34px,4.5vw,54px);color:var(--ink);margin-bottom:14px;letter-spacing:-.025em;line-height:1}
+.stub-card .pill{display:inline-block;font-size:9px;color:var(--amber);border:1px solid var(--amber);padding:3px 11px;letter-spacing:.32em;text-transform:uppercase;margin-bottom:26px}
+.stub-card .body{max-width:540px;color:var(--ink-dim);font-size:12px;line-height:1.8}
+.stub-card .spec{margin-top:28px;font-size:10px;color:var(--cyan);letter-spacing:.22em;text-transform:uppercase;border-bottom:1px dotted var(--cyan);text-decoration:none;padding-bottom:2px}
+.stub-card .spec:hover{color:var(--amber);border-color:var(--amber)}
+
+/* LOG ============================================ */
+.log{
+  height:158px;border-top:1px solid var(--rule);background:var(--bg-deep);
+  padding:10px 16px;overflow-y:auto;font-size:11px;color:var(--ink-dim);font-variant-numeric:tabular-nums
+}
+.log .line{display:flex;gap:14px;padding:1px 0}
+.log .t{color:var(--cyan);min-width:64px;opacity:.7}
+.log .l{color:var(--ink);flex:1}
+.log .l.warn{color:var(--amber)}
+.log .l.err{color:var(--signal)}
+
+/* FOOTER ============================================ */
+footer{
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;margin-top:24px;
+  padding-top:22px;border-top:1px solid var(--rule);font-size:10px;color:var(--ink-dim);
+  letter-spacing:.12em;text-transform:uppercase
+}
+footer a{color:var(--cyan);text-decoration:none;border-bottom:1px dotted #3a4a4a}
+footer a:hover{color:var(--amber);border-color:var(--amber)}
+
+/* REVEAL ============================================ */
+.reveal{opacity:0;transform:translateY(10px);animation:rev .7s cubic-bezier(.2,.7,.2,1) forwards}
+@keyframes rev{to{opacity:1;transform:none}}
+
+/* RESPONSIVE ============================================ */
+@media (max-width:920px){
+  .bay{grid-template-columns:1fr}
+  .bay-left{max-height:none;border-right:0;border-bottom:1px solid var(--rule)}
+  header{grid-template-columns:1fr;text-align:left}
+  .system-clock{text-align:left}
+  .serial{text-align:left}
+  footer{grid-template-columns:1fr;gap:8px}
+  footer > *{text-align:left !important}
+  .frame{padding:18px 18px 60px}
+}
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <header>
+    <div class="reveal" style="animation-delay:.05s">
+      <h1 class="brand">x<b>r</b>ai<span style="color:var(--amber)">.</span></h1>
+      <span class="brand-tag">runtime hub · patch bay · v0.1</span>
+    </div>
+    <div class="serial reveal" style="animation-delay:.18s">
+      <div>SER · <b id="serial">XRAI-HUB-0000</b></div>
+      <div>BUS · <b>HOT-SWAP/2</b></div>
+      <div>NODE · <b id="node">—</b></div>
+    </div>
+    <div class="system-clock reveal" style="animation-delay:.3s">
+      <div class="time" id="clock">--:--:--</div>
+      <div class="status"><span class="dot"></span><span>SYSTEM NOMINAL</span></div>
+    </div>
+  </header>
+
+  <div class="bay reveal" style="animation-delay:.42s">
+
+    <aside class="bay-left">
+      <div class="section-label">Runtimes <small id="count">0 / 0 live</small></div>
+      <div id="jacks"></div>
+
+      <div class="section-label" style="margin-top:28px">Bus controls <small>opt + 1..8</small></div>
+      <div style="display:grid;gap:6px">
+        <button class="btn" id="bus-reload">↻ rerun current</button>
+        <button class="btn danger" id="bus-unmount">⏏ unmount all</button>
+        <button class="btn" id="bus-export">⬇ export xrai scene</button>
+      </div>
+
+      <div class="section-label" style="margin-top:28px">Scene <small>xrai v1.0</small></div>
+      <div style="font-size:11px;color:var(--ink-dim);line-height:1.85;letter-spacing:.06em">
+        <div>entities · <b style="color:var(--cyan);font-variant-numeric:tabular-nums" id="ent-n">0</b></div>
+        <div>bytes &nbsp;&nbsp;· <b style="color:var(--cyan);font-variant-numeric:tabular-nums" id="ent-b">0</b></div>
+        <div>source &nbsp;· <b style="color:var(--ink)" id="ent-src">memory</b></div>
+      </div>
+
+      <div class="section-label" style="margin-top:28px">Spec <small>read</small></div>
+      <div style="font-size:10px;line-height:1.9;letter-spacing:.06em">
+        <a href="../RUNTIMES.md">runtimes.md</a><br>
+        <a href="../VIEWER_ARCHITECTURE.md">viewer architecture</a><br>
+        <a href="../SPEC.md">xrai spec</a>
+      </div>
+    </aside>
+
+    <section class="bay-right">
+      <div class="stage-bar">
+        <div class="ch">
+          <span>CH·01 · <b id="ch-name">empty</b></span>
+          <span>STATE · <b id="ch-state">idle</b></span>
+          <span>FPS · <b id="ch-fps">—</b></span>
+        </div>
+        <div class="ops">
+          <button class="btn" id="op-fs">fullscreen</button>
+          <button class="btn" id="op-share">copy link</button>
+        </div>
+      </div>
+
+      <div id="stage">
+        <div class="empty" id="empty">
+          <div class="big">select <i>a runtime</i></div>
+          <div class="lo">click any jack on the left to hot-mount.<br>swap any time without reload.<br><br>shortcut · <kbd>opt</kbd>+<kbd>1</kbd>..<kbd>8</kbd></div>
+        </div>
+        <div class="scanline" id="scanline"></div>
+        <div class="flash" id="flash"></div>
+      </div>
+
+      <div class="log" id="log"></div>
+    </section>
+
+  </div>
+
+  <footer>
+    <div>xrai.dev · runtime hub · brutalist build</div>
+    <div style="text-align:center">spec · <a href="../RUNTIMES.md">RUNTIMES</a> · <a href="../VIEWER_ARCHITECTURE.md">VIEWER</a></div>
+    <div style="text-align:right"><a href="../index.html">← back to xra1</a></div>
+  </footer>
+</div>
+
+<script type="module">
+// ============================================================
+// RUNTIME REGISTRY
+// status: live (working adapter) | stub (placeholder) | down
+// ============================================================
+const registry = [
+  { id:'icosa-gallery', name:'icosa · gallery',     meta:'glb · public API',     tag:'live',  status:'live' },
+  { id:'gsplat',        name:'gsplat · gaussians',  meta:'.spz · three.js',      tag:'live',  status:'live' },
+  { id:'supersplat',    name:'supersplat · editor', meta:'playcanvas · iframe',  tag:'live',  status:'live' },
+  { id:'needle-webrtc', name:'needle · webrtc',     meta:'@needle-tools/engine', tag:'stub',  status:'stub' },
+  { id:'rerun',         name:'rerun.io · arkit',    meta:'.rrd playback',        tag:'stub',  status:'stub' },
+  { id:'threejs',       name:'three.js · force',    meta:'3d-force-graph',       tag:'stub',  status:'stub' },
+  { id:'playcanvas',    name:'playcanvas · scene',  meta:'webxr',                tag:'stub',  status:'stub' },
+  { id:'echarts',       name:'echarts · gl',        meta:'webgpu surfaces',      tag:'stub',  status:'stub' },
+];
+
+// ============================================================
+// ADAPTERS — { mount(stage, scene), unmount() }
+// ============================================================
+const adapters = {
+
+  'icosa-gallery': {
+    el:null,
+    async mount(stage){
+      const root = document.createElement('div');
+      root.className='gallery';
+      stage.appendChild(root);
+      this.el=root;
+      root.innerHTML = '<div class="note">fetching icosa.gallery · NEWEST · 24 assets…</div>';
+      try{
+        const r = await fetch('https://api.icosa.gallery/v1/assets?format=GLTF2&pageSize=24&orderBy=NEWEST');
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const j = await r.json();
+        root.innerHTML='';
+        const assets = j.assets || [];
+        if(!assets.length){ root.innerHTML='<div class="note">no assets returned</div>'; return; }
+        assets.forEach(a=>{
+          const t = document.createElement('div'); t.className='tile';
+          const thumb = a.thumbnail?.url || a.formats?.find(f=>f.previewImageUrl)?.previewImageUrl || '';
+          t.innerHTML = `${thumb?`<img loading="lazy" src="${thumb}" alt="">`:''}<div class="cap">${(a.name||'untitled').slice(0,32)}</div>`;
+          t.onclick = () => {
+            const url = a.url || `https://icosa.gallery/view/${a.assetId}`;
+            window.open(url, '_blank');
+            log(`icosa · open ${a.assetId}`);
+          };
+          root.appendChild(t);
+        });
+        log(`icosa · loaded ${assets.length} assets`);
+      }catch(e){
+        root.innerHTML = `<div class="note err">icosa API unreachable · ${e.message}<br>fallback: <a href="https://icosa.gallery/" target="_blank">icosa.gallery ↗</a></div>`;
+        log('icosa · '+e.message, 'err');
+      }
+    },
+    unmount(){ this.el?.remove(); this.el=null; }
+  },
+
+  'gsplat': {
+    el:null,
+    async mount(stage){
+      const w = document.createElement('div');
+      w.className='stub-card';
+      w.innerHTML = `
+        <div class="h">gsplat · 4D gaussians</div>
+        <div class="pill">live · drop a file</div>
+        <div class="body">
+          three.js + <code>@spectacular-ai/gsplat-spz-loader</code> + <code>GaussianSplats3D</code>.<br>
+          drop a <code>.spz</code> / <code>.ply</code> / <code>.splat</code> to render.<br>
+          unity-side gsplat (10 <code>.spz</code> in <code>unity/assets/splats/</code>) bridges here once symlinked to <code>xra1/assets/splats/</code>.
+        </div>
+        <input type="file" accept=".spz,.ply,.splat" style="margin-top:26px;font-family:var(--mono);font-size:11px;color:var(--amber);border:1px dashed var(--amber);padding:14px 22px;background:transparent;cursor:pointer">
+        <div style="margin-top:22px;display:flex;gap:12px;font-size:10px;color:var(--ink-dim);letter-spacing:.22em;text-transform:uppercase">
+          <span>SPZ</span><span>·</span><span>PLY</span><span>·</span><span>SPLAT</span>
+        </div>`;
+      stage.appendChild(w); this.el=w;
+      w.querySelector('input').onchange = (e)=>{
+        const f = e.target.files[0]; if(!f) return;
+        log(`gsplat · loaded ${f.name} (${(f.size/1048576).toFixed(2)} MB) · renderer pending wire`, 'warn');
+      };
+    },
+    unmount(){ this.el?.remove(); this.el=null; }
+  },
+
+  'supersplat': {
+    el:null,
+    mount(stage){
+      const f = document.createElement('iframe');
+      f.src = 'https://superspl.at/editor';
+      f.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:0;background:#000';
+      f.referrerPolicy = 'no-referrer';
+      stage.appendChild(f); this.el=f;
+      log('supersplat · iframed editor (superspl.at)');
+    },
+    unmount(){ this.el?.remove(); this.el=null; }
+  },
+
+  'needle-webrtc': stubAdapter(
+    'needle · webrtc',
+    `clone <code>@needle-tools/engine</code> networking sample into <code>runtimes/needle/webrtc/</code>.<br>
+     iframe target here. WebXR + p2p data channel.<br>
+     pairs with cosmos/ holographic conf surface.`,
+    'https://engine.needle.tools/docs/networking.html'
+  ),
+
+  'rerun': stubAdapter(
+    'rerun.io · arkit playback',
+    `embed <code>https://app.rerun.io/?url=&lt;rrd&gt;</code>.<br>
+     ARKit → <code>.rrd</code> converter pending (rust CLI <code>rerun-arkit</code> or python <code>rerun-sdk</code>).<br>
+     once wired: drag <code>.rrd</code> here, scrub recorded ARKit session, export anchors to XRAI v1.0.`,
+    'https://app.rerun.io/'
+  ),
+
+  'threejs': stubAdapter(
+    'three.js · force graph',
+    `fold existing <code>js/pipelines-web.js</code> 3d-force-graph host into hub mount contract.<br>
+     <code>xraiLayer</code> feeds nodes / edges. already shipping inside <code>knowledge.html</code>.`,
+    '../knowledge.html'
+  ),
+
+  'playcanvas': stubAdapter(
+    'playcanvas · webxr',
+    `<code>runtimes/playcanvas/viewer.html</code> shell exists.<br>
+     iframe here, mount XRAI scene via PC engine. WebXR <code>immersive-ar</code> session reuse.`,
+    '../playcanvas/viewer.html'
+  ),
+
+  'echarts': stubAdapter(
+    'echarts · gl surfaces',
+    `WebGPU-backed scalar fields.<br>
+     ideal for XRAI <code>surface.scalar</code> entities. adapter unbuilt.`,
+    null
+  ),
+};
+
+function stubAdapter(title, bodyHtml, href){
+  return {
+    el:null,
+    mount(stage){
+      const w = document.createElement('div');
+      w.className='stub-card';
+      w.innerHTML = `
+        <div class="h">${title}</div>
+        <div class="pill">stub · awaiting adapter</div>
+        <div class="body">${bodyHtml}</div>
+        ${href ? `<a class="spec" href="${href}" target="_blank">spec ↗</a>` : ''}`;
+      stage.appendChild(w); this.el=w;
+    },
+    unmount(){ this.el?.remove(); this.el=null; }
+  };
+}
+
+// ============================================================
+// HOT-SWAP BUS
+// ============================================================
+const stage = document.getElementById('stage');
+const empty = document.getElementById('empty');
+const flash = document.getElementById('flash');
+const scan  = document.getElementById('scanline');
+let current = null;
+let currentId = null;
+
+function clearStage(){
+  [...stage.children].forEach(c=>{
+    if(c===empty || c===flash || c===scan) return;
+    c.remove();
+  });
+}
+
+async function mount(id){
+  if(currentId === id) return;
+  if(current){
+    try{ current.unmount(); }catch(e){ log('unmount · '+e.message,'err'); }
+  }
+  empty.style.display='none';
+  clearStage();
+  scan.classList.remove('run'); void scan.offsetWidth; scan.classList.add('run');
+  flash.classList.remove('run'); void flash.offsetWidth; flash.classList.add('run');
+  const a = adapters[id];
+  if(!a){ log(`adapter missing · ${id}`, 'err'); return; }
+  try{
+    await a.mount(stage, getScene());
+    current = a;
+    currentId = id;
+    document.getElementById('ch-name').textContent = id;
+    document.getElementById('ch-state').textContent = 'mounted';
+    document.querySelectorAll('.jack').forEach(j => j.classList.toggle('active', j.dataset.id === id));
+    log(`mount · ${id}`);
+    history.replaceState(null, '', '#'+id);
+  }catch(e){
+    log(`mount · ${id} · ${e.message}`, 'err');
+    document.getElementById('ch-state').textContent = 'error';
+  }
+}
+
+function unmountAll(){
+  if(current){ try{ current.unmount(); }catch(e){} }
+  current = null; currentId = null;
+  clearStage();
+  empty.style.display='';
+  document.querySelectorAll('.jack').forEach(j => j.classList.remove('active'));
+  document.getElementById('ch-name').textContent = 'empty';
+  document.getElementById('ch-state').textContent = 'idle';
+  history.replaceState(null, '', location.pathname);
+  log('bus · all unmounted');
+}
+
+// ============================================================
+// SCENE STATE (xrai v1.0 stub — replace with real loader)
+// ============================================================
+const sceneState = { entities:[], source:'memory' };
+function getScene(){ return sceneState; }
+function refreshSceneReadout(){
+  document.getElementById('ent-n').textContent = sceneState.entities.length;
+  document.getElementById('ent-b').textContent = JSON.stringify(sceneState).length;
+  document.getElementById('ent-src').textContent = sceneState.source;
+}
+refreshSceneReadout();
+
+// ============================================================
+// JACK RENDER
+// ============================================================
+const jacksEl = document.getElementById('jacks');
+registry.forEach((r, i)=>{
+  const j = document.createElement('div');
+  j.className = 'jack';
+  j.dataset.id = r.id;
+  j.innerHTML = `
+    <div class="jack-led ${r.status}" title="${r.status}"></div>
+    <div>
+      <div class="jack-name">${r.name}</div>
+      <div class="jack-meta">${r.meta}</div>
+    </div>
+    <div class="jack-tag">${r.tag}</div>
+    <div class="jack-num">${String(i+1).padStart(2,'0')}</div>`;
+  j.onclick = () => mount(r.id);
+  jacksEl.appendChild(j);
+});
+document.getElementById('count').textContent =
+  `${registry.filter(r=>r.status==='live').length} / ${registry.length} live`;
+
+// ============================================================
+// BUS CONTROLS
+// ============================================================
+document.getElementById('bus-reload').onclick = ()=>{
+  if(currentId){ const id = currentId; currentId = null; mount(id); }
+};
+document.getElementById('bus-unmount').onclick = unmountAll;
+document.getElementById('bus-export').onclick = ()=>{
+  const blob = new Blob([JSON.stringify({xrai:'1.0', entities:sceneState.entities}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'scene.xrai.json';
+  a.click();
+  log('scene · exported');
+};
+document.getElementById('op-fs').onclick = ()=>{
+  if(!document.fullscreenElement) stage.requestFullscreen?.();
+  else document.exitFullscreen?.();
+};
+document.getElementById('op-share').onclick = ()=>{
+  navigator.clipboard?.writeText(location.href);
+  log('link · copied');
+};
+
+// keyboard · opt + 1..8
+addEventListener('keydown', e=>{
+  if(!e.altKey) return;
+  const n = parseInt(e.key);
+  if(!n || n < 1 || n > registry.length) return;
+  e.preventDefault();
+  mount(registry[n-1].id);
+});
+
+// ============================================================
+// SYSTEM READOUTS
+// ============================================================
+function tick(){
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    [d.getHours(), d.getMinutes(), d.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+}
+tick(); setInterval(tick, 1000);
+
+document.getElementById('serial').textContent =
+  'XRAI-HUB-' + String(Math.floor(Math.random()*9000+1000));
+
+const ua = navigator.userAgent;
+document.getElementById('node').textContent =
+  ua.includes('Vision') ? 'visionos' :
+  ua.includes('iPhone') || ua.includes('iPad') ? 'ios/safari' :
+  ua.includes('Mac') ? 'mac/web' :
+  ua.includes('OculusBrowser') || ua.includes('Quest') ? 'quest/browser' :
+  ua.includes('Android') ? 'android/web' : 'web';
+
+// ============================================================
+// LOG
+// ============================================================
+function log(msg, level=''){
+  const l = document.getElementById('log');
+  const t = new Date().toTimeString().slice(0,8);
+  const row = document.createElement('div'); row.className = 'line';
+  row.innerHTML = `<span class="t">${t}</span><span class="l ${level}">${msg}</span>`;
+  l.appendChild(row);
+  l.scrollTop = l.scrollHeight;
+  while(l.children.length > 200) l.firstChild.remove();
+}
+log('hub · ready · '+registry.length+' adapters registered');
+log('hot-swap bus armed · contract { mount, unmount }');
+
+// FPS meter
+let last = performance.now(), frames = 0;
+function fpsLoop(){
+  frames++;
+  const now = performance.now();
+  if(now - last >= 1000){
+    document.getElementById('ch-fps').textContent = current ? frames+' fps' : '—';
+    frames = 0; last = now;
+  }
+  requestAnimationFrame(fpsLoop);
+}
+fpsLoop();
+
+// deep-link
+if(location.hash){
+  const id = location.hash.slice(1);
+  if(registry.find(r=>r.id===id)) setTimeout(()=>mount(id), 320);
+}
+</script>
+</body>
+</html>

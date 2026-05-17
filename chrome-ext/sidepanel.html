@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRAI · dash</title>
+<style>
+  html, body { margin:0; padding:0; background:#0a0908; color:#f4ecd8;
+               font:11px/1.4 'JetBrains Mono', ui-monospace, monospace; height:100%; }
+  body { display:grid; grid-template-rows:auto auto 1fr auto; }
+  .hdr { padding:10px 14px; border-bottom:1px solid #211e18; display:flex; gap:10px; align-items:center;
+         color:#ffb000; text-transform:uppercase; letter-spacing:.2em; font-size:10px; }
+  .hdr .dot { width:6px; height:6px; background:#62ff7a; border-radius:50%; box-shadow:0 0 8px #62ff7a; }
+  .tabs { display:flex; gap:0; border-bottom:1px solid #211e18; }
+  .tabs button { flex:1; background:#0d0c0a; color:#7fffe4; border:0; border-right:1px solid #211e18;
+                 font:500 10px/1 'JetBrains Mono',monospace; padding:8px; cursor:pointer; text-transform:uppercase; letter-spacing:.15em; }
+  .tabs button.active { background:#1a1813; color:#ffb000; }
+  .pane { overflow-y:auto; padding:12px 14px; display:none; }
+  .pane.active { display:block; }
+  h3 { color:#ffb000; font-size:10px; text-transform:uppercase; letter-spacing:.2em; margin:0 0 8px; }
+  ul { margin:0; padding:0; list-style:none; }
+  li { padding:6px 0; border-bottom:1px solid #1a1813; display:flex; gap:8px; align-items:center; }
+  li .t { color:#ffb000; flex:0 0 56px; font-size:9px; text-transform:uppercase; }
+  li .b { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  li button { background:#1a1813; color:#7fffe4; border:0; font:500 9px/1 'JetBrains Mono',monospace;
+              padding:3px 6px; cursor:pointer; }
+  .ask { padding:10px 14px; border-top:1px solid #211e18; display:flex; gap:6px; background:#0d0c0a; }
+  .ask input { flex:1; background:#050403; color:#f4ecd8; border:1px solid #2a2519;
+               font:400 11px/1 'JetBrains Mono',monospace; padding:7px 9px; }
+  .ask button { background:#ffb000; color:#0d0c0a; border:0; font:700 10px/1 'JetBrains Mono',monospace;
+                padding:7px 14px; cursor:pointer; text-transform:uppercase; letter-spacing:.15em; }
+  .feed { margin-top:14px; }
+  .card { background:#0d0c0a; border:1px solid #211e18; padding:8px 10px; margin-bottom:6px; }
+  .card .title { color:#7fffe4; font-size:10px; margin-bottom:2px; }
+  .card .src   { color:#8a826f; font-size:9px; }
+  .empty { opacity:.4; font-style:italic; padding:24px 0; text-align:center; }
+</style>
+</head>
+<body>
+  <div class="hdr"><span class="dot"></span> XRAI · dash <span style="margin-left:auto;color:#7fffe4" id="hub-stat">hub: ?</span></div>
+  <div class="tabs">
+    <button data-tab="page" class="active">page</button>
+    <button data-tab="library">library</button>
+    <button data-tab="discover">discover</button>
+    <button data-tab="agents">agents</button>
+  </div>
+  <div id="pane-page" class="pane active">
+    <h3>current page</h3>
+    <div id="page-meta" class="empty">loading…</div>
+    <h3 style="margin-top:14px">assets sniffed</h3>
+    <ul id="page-assets"><li class="empty">—</li></ul>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button id="btn-graph"  style="background:#ffb000;color:#0d0c0a;border:0;font:700 10px/1 'JetBrains Mono',monospace;padding:7px 12px;cursor:pointer">3D graph</button>
+      <button id="btn-remix"  style="background:#7fffe4;color:#0d0c0a;border:0;font:700 10px/1 'JetBrains Mono',monospace;padding:7px 12px;cursor:pointer">remix</button>
+      <button id="btn-shader" style="background:#c9b3ff;color:#0d0c0a;border:0;font:700 10px/1 'JetBrains Mono',monospace;padding:7px 12px;cursor:pointer">shader</button>
+      <button id="btn-ar"     style="background:#0d0c0a;color:#62ff7a;border:1px solid #62ff7a;font:700 10px/1 'JetBrains Mono',monospace;padding:7px 12px;cursor:pointer">AR</button>
+    </div>
+  </div>
+  <div id="pane-library" class="pane">
+    <h3>your xrais</h3>
+    <ul id="lib-list"><li class="empty">no saved scenes · capture from any page</li></ul>
+  </div>
+  <div id="pane-discover" class="pane">
+    <h3>new agents · models · capture tech</h3>
+    <div class="feed" id="feed">
+      <div class="card"><div class="title">ShaderVine</div><div class="src">WebGPU shader editor · MCP-native</div></div>
+      <div class="card"><div class="title">Needle Everywhere Actions</div><div class="src">no-code AR · iOS Quick Look + WebXR</div></div>
+      <div class="card"><div class="title">AIRI VRM agents</div><div class="src">open-source AI VTuber container</div></div>
+      <div class="card"><div class="title">MiroFish-Offline</div><div class="src">CAMEL-AI/OASIS multi-agent sim · Neo4j</div></div>
+      <div class="card"><div class="title">SuperSplat</div><div class="src">Gaussian splat editor in browser</div></div>
+    </div>
+  </div>
+  <div id="pane-agents" class="pane">
+    <h3>agent forest</h3>
+    <ul id="agent-list"><li class="empty">no agents yet · spin up a jarvis</li></ul>
+  </div>
+  <div class="ask">
+    <input id="ask" placeholder="ask jarvis · or /grab /remix /ar /shader">
+    <button id="ask-go">go</button>
+  </div>
+
+<script type="module">
+const HUB = 'http://localhost:8787';
+
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('.tabs button').forEach(x=> x.classList.toggle('active', x===b));
+    document.querySelectorAll('.pane').forEach(p=> p.classList.toggle('active', p.id === 'pane-'+b.dataset.tab));
+  };
+});
+
+// hub health
+fetch(HUB + '/health').then(r=>r.json()).then(j=>{
+  document.getElementById('hub-stat').textContent = 'hub: ' + (j.ok ? 'live' : 'down');
+  document.getElementById('hub-stat').style.color = j.ok ? '#62ff7a' : '#ff3b3b';
+}).catch(()=>{
+  document.getElementById('hub-stat').textContent = 'hub: offline';
+  document.getElementById('hub-stat').style.color = '#ff3b3b';
+});
+
+// fetch current tab assets
+async function refresh(){
+  const [tab] = await chrome.tabs.query({ active:true, currentWindow:true });
+  if(!tab) return;
+  document.getElementById('page-meta').innerHTML =
+    `<div style="color:#7fffe4">${tab.title}</div><div style="color:#8a826f;font-size:9px;word-break:break-all">${tab.url}</div>`;
+  chrome.scripting.executeScript({
+    target:{ tabId: tab.id },
+    func: ()=>({
+      imgs: [...document.images].slice(0,20).map(i=>i.currentSrc||i.src).filter(Boolean),
+      vids: [...document.querySelectorAll('video')].map(v=>v.currentSrc||v.src).filter(Boolean),
+      glbs: [...document.querySelectorAll('a[href]')].filter(a=>/\.(glb|gltf|usdz|spz)$/i.test(a.href)).map(a=>a.href),
+      iframes: [...document.querySelectorAll('iframe')].slice(0,10).map(i=>i.src).filter(Boolean),
+    }),
+  }, ([r])=>{
+    const a = r.result;
+    const all = [
+      ...a.glbs.map(s=>({t:'3D', s})),
+      ...a.vids.map(s=>({t:'video', s})),
+      ...a.iframes.map(s=>({t:'iframe', s})),
+      ...a.imgs.map(s=>({t:'image', s})),
+    ];
+    document.getElementById('page-assets').innerHTML = all.length
+      ? all.slice(0,40).map(x=>`<li><span class="t">${x.t}</span><span class="b" title="${x.s}">${x.s}</span><button data-s="${x.s}" data-t="${x.t}">grab</button></li>`).join('')
+      : '<li class="empty">no assets</li>';
+    document.querySelectorAll('#page-assets button').forEach(b=> b.onclick = ()=>{
+      const cap = { id:Date.now(), type:b.dataset.t.toLowerCase(), src:b.dataset.s, label:b.dataset.s.split('/').pop(), ts:Date.now() };
+      const list = JSON.parse(localStorage.getItem('xrai.lib')||'[]'); list.unshift(cap);
+      localStorage.setItem('xrai.lib', JSON.stringify(list.slice(0,200)));
+      renderLib(); b.textContent = '✓';
+    });
+  });
+}
+
+function renderLib(){
+  const list = JSON.parse(localStorage.getItem('xrai.lib')||'[]');
+  document.getElementById('lib-list').innerHTML = list.length
+    ? list.slice(0,50).map(c=>`<li><span class="t">${c.type}</span><span class="b" title="${c.src}">${c.label||c.src}</span></li>`).join('')
+    : '<li class="empty">no saved scenes</li>';
+}
+
+document.getElementById('btn-graph').onclick = ()=>
+  chrome.windows.create({ url: chrome.runtime.getURL('popout.html?mode=graph'), type:'popup', width:1100, height:760 });
+document.getElementById('btn-remix').onclick = ()=>
+  chrome.windows.create({ url: chrome.runtime.getURL('popout.html?mode=remix'), type:'popup', width:1100, height:760 });
+document.getElementById('btn-shader').onclick = ()=>
+  chrome.windows.create({ url: chrome.runtime.getURL('popout.html?mode=shader'), type:'popup', width:1100, height:760 });
+document.getElementById('btn-ar').onclick = ()=>
+  chrome.windows.create({ url: chrome.runtime.getURL('popout.html?mode=ar'), type:'popup', width:1100, height:760 });
+
+const ask = ()=>{
+  const q = document.getElementById('ask').value.trim(); if(!q) return;
+  if(q.startsWith('/')){
+    const [cmd, ...rest] = q.slice(1).split(' ');
+    chrome.windows.create({ url: chrome.runtime.getURL(`popout.html?mode=${cmd}&q=`+encodeURIComponent(rest.join(' '))), type:'popup', width:1100, height:760 });
+  } else {
+    fetch(HUB + '/ask', { method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ q, page: location.href })})
+      .then(r=>r.json()).then(j=>{
+        const f = document.getElementById('feed');
+        f.innerHTML = `<div class="card"><div class="title">jarvis</div><div class="src">${(j.text||j.error||'').replace(/[<>]/g,'')}</div></div>` + f.innerHTML;
+      });
+  }
+  document.getElementById('ask').value = '';
+};
+document.getElementById('ask-go').onclick = ask;
+document.getElementById('ask').onkeydown = e=>{ if(e.key === 'Enter') ask(); };
+
+refresh(); renderLib();
+chrome.tabs.onActivated.addListener(refresh);
+chrome.runtime.onMessage.addListener(m=>{
+  if(m?.kind === 'xrai.capture.broadcast'){
+    const list = JSON.parse(localStorage.getItem('xrai.lib')||'[]'); list.unshift(m.cap);
+    localStorage.setItem('xrai.lib', JSON.stringify(list.slice(0,200))); renderLib();
+  }
+});
+</script>
+</body>
+</html>

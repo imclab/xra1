@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>XRAI · popout</title>
+<style>
+  html, body { margin:0; padding:0; background:#0a0908; color:#f4ecd8;
+               font:11px/1.4 'JetBrains Mono', ui-monospace, monospace; height:100%; overflow:hidden; }
+  body { display:grid; grid-template-rows:auto 1fr; }
+  .hdr { padding:8px 14px; border-bottom:1px solid #211e18; display:flex; gap:14px; align-items:center;
+         color:#ffb000; text-transform:uppercase; letter-spacing:.2em; font-size:10px; }
+  .hdr .dot { width:6px; height:6px; background:#62ff7a; border-radius:50%; box-shadow:0 0 8px #62ff7a; }
+  #stage { position:relative; overflow:hidden; }
+</style>
+</head>
+<body>
+  <div class="hdr"><span class="dot"></span> XRAI · <span id="mode-label">…</span><span style="margin-left:auto" id="src-label"></span></div>
+  <div id="stage"></div>
+<script type="module">
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode') || 'graph';
+const src  = params.get('src')  || '';
+document.getElementById('mode-label').textContent = mode;
+document.getElementById('src-label').textContent  = src ? src.slice(0,80) : '';
+
+// minimal ctx.bus shim so adapters can emit without xrai hub
+const bus = { _h:{}, on(t,f){ (this._h[t]=this._h[t]||[]).push(f); }, emit(t,p){
+  (this._h[t]||[]).forEach(f=> f(t,p)); (this._h['*']||[]).forEach(f=> f(t,p)); } };
+
+// runtimes live at the GH-Pages site; absolute URLs so the extension can fetch them
+const RUNTIME_BASE = 'https://imclab.github.io/xra1/runtimes/';
+
+const MAP = {
+  graph:  RUNTIME_BASE + 'echarts/adapter.js',
+  remix:  RUNTIME_BASE + 'remix/adapter.js',
+  shader: RUNTIME_BASE + 'shader/adapter.js',
+  ar:     RUNTIME_BASE + '_ar-needle/adapter.js',
+  xrai:   RUNTIME_BASE + 'xrai/adapter.js',
+  gesture:RUNTIME_BASE + 'gesture/adapter.js',
+};
+const mod = MAP[mode] || MAP.graph;
+const stage = document.getElementById('stage');
+
+try{
+  const m = await import(mod);
+  const scene = src ? { entities:[{ type: guess(src), src }] } : null;
+  await m.mount(stage, scene, { bus });
+}catch(e){
+  stage.innerHTML = `<div style="padding:24px;color:#ff3b3b">load fail · ${e.message}<br><small>${mod}</small></div>`;
+}
+
+function guess(u){
+  if(/\.(glb|gltf|usdz)$/i.test(u)) return 'mesh';
+  if(/\.(spz|ply|splat|ksplat)$/i.test(u)) return 'splat';
+  if(/\.(png|jpe?g|gif|webp)$/i.test(u)) return 'image';
+  if(/\.(mp4|webm|mov)$/i.test(u)) return 'video';
+  return 'link';
+}
+</script>
+</body>
+</html>
