@@ -449,6 +449,9 @@ const bus = {
 };
 window.__xraiBus = bus;
 
+// jarvis node-graph (and any peer) can request a hot-swap via bus
+bus.on('hub.swap', (_t, id)=>{ if(id && registry.find(r=>r.id===id)) mount(id); });
+
 const stage = document.getElementById('stage');
 const empty = document.getElementById('empty');
 const flash = document.getElementById('flash');
@@ -468,7 +471,7 @@ async function loadGeneric(id){
       host.style.cssText = 'position:absolute;inset:0;overflow:hidden';
       stage.appendChild(host);
       this._host = host;
-      await mod.mount(host, scene, { bus });
+      await mod.mount(host, scene, { bus, registry });
     },
     unmount(){
       try{ mod.unmount?.(); }catch(e){}
