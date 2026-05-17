@@ -6,6 +6,11 @@
 
 let host = null, onEv = null, ctxRef = null;
 let captures = []; // { id, type, src, label, ts, edits }
+let ws = null, peers = new Map(), myId = Math.random().toString(36).slice(2,10), currentRoom = null;
+const seenCapIds = new Set();
+const HUB_WS = (typeof location !== 'undefined' && location.hostname === 'localhost')
+  ? `ws://localhost:8787/ws`
+  : `ws://localhost:8787/ws`; // hub is always local; gh-pages page still talks to user's localhost
 
 export const id   = 'remix';
 export const meta = { capture:true, share:true };
@@ -47,11 +52,102 @@ export async function mount(stage, scene, ctx = {}){
     s.textContent = m;
   };
 
-  function add(cap){
+  function add(cap, fromPeer){
+    if(cap.id && seenCapIds.has(cap.id)) return;
+    if(cap.id) seenCapIds.add(cap.id);
     captures.push(cap);
     render();
     ctxRef?.bus?.emit?.('remix.capture', cap);
     onEv?.({ type:'remix.capture', cap });
+    if(!fromPeer) broadcast({ kind:'cap', cap });
+  }
+
+  function broadcast(msg){
+    const s = JSON.stringify(msg);
+    for(const p of peers.values()) if(p.dc && p.dc.readyState === 'open'){ try { p.dc.send(s); } catch{} }
+  }
+
+  function setPeerCount(){
+    const r = host?.querySelector('#rx-room');
+    if(r && currentRoom) r.textContent = `${currentRoom} · ${peers.size + 1}p`;
+  }
+
+  function mkPeer(peerId, polite){
+    const pc = new RTCPeerConnection({ iceServers:[{ urls:'stun:stun.l.google.com:19302' }] });
+    const entry = { pc, dc:null };
+    peers.set(peerId, entry);
+
+    pc.onicecandidate = e=>{ if(e.candidate) ws?.send(JSON.stringify({ to:peerId, kind:'ice', candidate:e.candidate })); };
+    pc.onconnectionstatechange = ()=>{
+      if(['closed','failed','disconnected'].includes(pc.connectionState)){
+        peers.delete(peerId); setPeerCount();
+      }
+    };
+    pc.ondatachannel = e=>{ entry.dc = e.channel; wireDC(entry.dc); };
+
+    if(polite){
+      entry.dc = pc.createDataChannel('xrai-remix');
+      wireDC(entry.dc);
+      pc.createOffer().then(o=> pc.setLocalDescription(o)).then(()=>{
+        ws?.send(JSON.stringify({ to:peerId, kind:'sdp', sdp:pc.localDescription }));
+      });
+    }
+    return entry;
+  }
+
+  function wireDC(dc){
+    dc.onopen = ()=>{
+      setPeerCount();
+      // sync current snapshot to new peer
+      for(const c of captures) try { dc.send(JSON.stringify({ kind:'cap', cap:c })); } catch{}
+    };
+    dc.onclose = setPeerCount;
+    dc.onmessage = e=>{
+      try {
+        const m = JSON.parse(e.data);
+        if(m.kind === 'cap' && m.cap) add(m.cap, true);
+      } catch{}
+    };
+  }
+
+  async function onSignal(msg){
+    if(msg.kind === 'hello'){
+      for(const pid of msg.peers || []) mkPeer(pid, true);
+      setPeerCount();
+    } else if(msg.kind === 'join'){
+      mkPeer(msg.id, false); setPeerCount();
+    } else if(msg.kind === 'leave'){
+      peers.get(msg.id)?.pc?.close(); peers.delete(msg.id); setPeerCount();
+    } else if(msg.kind === 'sdp' && msg.from){
+      let p = peers.get(msg.from) || mkPeer(msg.from, false);
+      await p.pc.setRemoteDescription(msg.sdp);
+      if(msg.sdp.type === 'offer'){
+        const ans = await p.pc.createAnswer();
+        await p.pc.setLocalDescription(ans);
+        ws?.send(JSON.stringify({ to:msg.from, kind:'sdp', sdp:p.pc.localDescription }));
+      }
+    } else if(msg.kind === 'ice' && msg.from){
+      const p = peers.get(msg.from);
+      if(p) try { await p.pc.addIceCandidate(msg.candidate); } catch{}
+    }
+  }
+
+  function joinRoom(room){
+    leaveRoom();
+    currentRoom = room;
+    host.querySelector('#rx-room').textContent = room + ' · connecting…';
+    ws = new WebSocket(`${HUB_WS}?room=${encodeURIComponent(room)}&id=${myId}`);
+    ws.onopen = ()=> setStat('room · ' + room);
+    ws.onerror = ()=> setStat('hub offline · start runtimes/_bridge/server.js', true);
+    ws.onclose = ()=>{ if(currentRoom === room) host.querySelector('#rx-room').textContent = room + ' · offline'; };
+    ws.onmessage = e=>{ try { onSignal(JSON.parse(e.data)); } catch{} };
+  }
+
+  function leaveRoom(){
+    for(const p of peers.values()) p.pc.close();
+    peers.clear();
+    try { ws?.close(); } catch{}
+    ws = null; currentRoom = null;
   }
 
   function render(){
@@ -199,12 +295,18 @@ export async function mount(stage, scene, ctx = {}){
   };
 
   host.querySelector('#rx-share').onclick = ()=>{
-    const room = 'xrai-' + Math.random().toString(36).slice(2,8);
-    host.querySelector('#rx-room').textContent = room;
+    const room = currentRoom || ('xrai-' + Math.random().toString(36).slice(2,8));
+    if(room !== currentRoom) joinRoom(room);
     ctxRef?.bus?.emit?.('webrtc.create', { room });
     const url = `${location.origin}${location.pathname}?room=${room}`;
     navigator.clipboard?.writeText(url).then(()=> setStat('room link copied · ' + room));
   };
+
+  // auto-join from URL ?room=
+  try {
+    const qp = new URLSearchParams(location.search).get('room');
+    if(qp) joinRoom(qp);
+  } catch{}
 
   // drag-and-drop
   host.addEventListener('dragover', e=>{ e.preventDefault(); host.style.outline = '2px solid #ffb000'; });
@@ -233,5 +335,11 @@ export async function mount(stage, scene, ctx = {}){
   render();
 }
 
-export function unmount(){ host?.remove(); host = null; ctxRef = null; captures = []; }
+export function unmount(){
+  for(const p of peers.values()) try { p.pc.close(); } catch{}
+  peers.clear();
+  try { ws?.close(); } catch{}
+  ws = null; currentRoom = null;
+  host?.remove(); host = null; ctxRef = null; captures = []; seenCapIds.clear();
+}
 export function onEvent(cb){ onEv = cb; }
