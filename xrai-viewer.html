@@ -356,10 +356,13 @@
     .hud.tr, .hud.br { max-width: 50vw; }
     .mark { font-size: clamp(32px, 12vw, 56px); }
   }
+  #xrai-backnav{position:fixed;top:10px;left:10px;z-index:99999;font:500 12px/1 'IBM Plex Mono',monospace;background:rgba(0,0,0,.55);color:#fff;padding:8px 12px;border-radius:6px;text-decoration:none;backdrop-filter:blur(8px);letter-spacing:.02em}
+  #xrai-backnav:hover{background:rgba(0,0,0,.85)}
 </style>
 </head>
 
 <body>
+  <a id="xrai-backnav" href="./" title="back to xra1 index">← xra1</a>
   <div class="diag" aria-hidden="true"></div>
   <div class="equator" aria-hidden="true"></div>
   <div id="stage" aria-label="XRAI scene render surface"></div>
