@@ -84,3 +84,6 @@ coverage/
 *.log
 *.tmp
 .DS_Store?
+
+# Local-only: splats live in portals_v4 (too big for GH-Pages)
+assets/splats
