@@ -316,15 +316,24 @@ footer a:hover{color:var(--amber);border-color:var(--amber)}
 // RUNTIME REGISTRY
 // status: live (working adapter) | stub (placeholder) | down
 // ============================================================
+// id maps 1:1 to runtimes/<id>/adapter.js — generic loader handles missing
 const registry = [
   { id:'icosa-gallery', name:'icosa · gallery',     meta:'glb · public API',     tag:'live',  status:'live' },
   { id:'gsplat',        name:'gsplat · gaussians',  meta:'.spz · three.js',      tag:'live',  status:'live' },
   { id:'supersplat',    name:'supersplat · editor', meta:'playcanvas · iframe',  tag:'live',  status:'live' },
-  { id:'needle-webrtc', name:'needle · webrtc',     meta:'@needle-tools/engine', tag:'stub',  status:'stub' },
-  { id:'rerun',         name:'rerun.io · arkit',    meta:'.rrd playback',        tag:'stub',  status:'stub' },
+  { id:'remix',         name:'remix · mesh',        meta:'webrtc capture sync',  tag:'live',  status:'live' },
+  { id:'forest',        name:'forest · agents',     meta:'OTALA + cosmos iframe',tag:'live',  status:'live' },
+  { id:'geo-map',       name:'geo · map',           meta:'maplibre + pins',      tag:'live',  status:'live' },
+  { id:'geo-ar',        name:'geo · ar',            meta:'camera + compass',     tag:'live',  status:'live' },
+  { id:'_ar-needle',    name:'needle · ar',         meta:'webxr immersive-ar',   tag:'live',  status:'live' },
+  { id:'shader',        name:'shader · wgsl',       meta:'live editor',          tag:'live',  status:'live' },
+  { id:'gesture',       name:'gesture · hands',     meta:'mediapipe',            tag:'live',  status:'live' },
+  { id:'xrai',          name:'xrai · scene',        meta:'native viewer',        tag:'live',  status:'live' },
+  { id:'rerun',         name:'rerun.io · arkit',    meta:'.rrd playback',        tag:'live',  status:'live' },
+  { id:'jarvis',        name:'jarvis · agents',     meta:'orchestrator + cosmos',tag:'live',  status:'live' },
+  { id:'echarts',       name:'echarts · graph',     meta:'force layout',         tag:'stub',  status:'stub' },
   { id:'threejs',       name:'three.js · force',    meta:'3d-force-graph',       tag:'stub',  status:'stub' },
   { id:'playcanvas',    name:'playcanvas · scene',  meta:'webxr',                tag:'stub',  status:'stub' },
-  { id:'echarts',       name:'echarts · gl',        meta:'webgpu surfaces',      tag:'stub',  status:'stub' },
 ];
 
 // ============================================================
@@ -367,32 +376,6 @@ const adapters = {
     unmount(){ this.el?.remove(); this.el=null; }
   },
 
-  'gsplat': {
-    el:null,
-    async mount(stage){
-      const w = document.createElement('div');
-      w.className='stub-card';
-      w.innerHTML = `
-        <div class="h">gsplat · 4D gaussians</div>
-        <div class="pill">live · drop a file</div>
-        <div class="body">
-          three.js + <code>@spectacular-ai/gsplat-spz-loader</code> + <code>GaussianSplats3D</code>.<br>
-          drop a <code>.spz</code> / <code>.ply</code> / <code>.splat</code> to render.<br>
-          unity-side gsplat (10 <code>.spz</code> in <code>unity/assets/splats/</code>) bridges here once symlinked to <code>xra1/assets/splats/</code>.
-        </div>
-        <input type="file" accept=".spz,.ply,.splat" style="margin-top:26px;font-family:var(--mono);font-size:11px;color:var(--amber);border:1px dashed var(--amber);padding:14px 22px;background:transparent;cursor:pointer">
-        <div style="margin-top:22px;display:flex;gap:12px;font-size:10px;color:var(--ink-dim);letter-spacing:.22em;text-transform:uppercase">
-          <span>SPZ</span><span>·</span><span>PLY</span><span>·</span><span>SPLAT</span>
-        </div>`;
-      stage.appendChild(w); this.el=w;
-      w.querySelector('input').onchange = (e)=>{
-        const f = e.target.files[0]; if(!f) return;
-        log(`gsplat · loaded ${f.name} (${(f.size/1048576).toFixed(2)} MB) · renderer pending wire`, 'warn');
-      };
-    },
-    unmount(){ this.el?.remove(); this.el=null; }
-  },
-
   'supersplat': {
     el:null,
     mount(stage){
@@ -412,14 +395,6 @@ const adapters = {
      iframe target here. WebXR + p2p data channel.<br>
      pairs with cosmos/ holographic conf surface.`,
     'https://engine.needle.tools/docs/networking.html'
-  ),
-
-  'rerun': stubAdapter(
-    'rerun.io · arkit playback',
-    `embed <code>https://app.rerun.io/?url=&lt;rrd&gt;</code>.<br>
-     ARKit → <code>.rrd</code> converter pending (rust CLI <code>rerun-arkit</code> or python <code>rerun-sdk</code>).<br>
-     once wired: drag <code>.rrd</code> here, scrub recorded ARKit session, export anchors to XRAI v1.0.`,
-    'https://app.rerun.io/'
   ),
 
   'threejs': stubAdapter(
@@ -462,14 +437,45 @@ function stubAdapter(title, bodyHtml, href){
 }
 
 // ============================================================
-// HOT-SWAP BUS
+// HOT-SWAP BUS — pub/sub shared across all adapters
 // ============================================================
+const bus = {
+  _h:{},
+  on(t,f){ (this._h[t]=this._h[t]||[]).push(f); return ()=>{ this._h[t] = this._h[t].filter(x=>x!==f); }; },
+  emit(t,p){
+    (this._h[t]||[]).forEach(f=>{ try{ f(t,p); }catch(e){ log(`bus · ${t} · ${e.message}`,'err'); } });
+    (this._h['*']||[]).forEach(f=>{ try{ f(t,p); }catch(e){} });
+  }
+};
+window.__xraiBus = bus;
+
 const stage = document.getElementById('stage');
 const empty = document.getElementById('empty');
 const flash = document.getElementById('flash');
 const scan  = document.getElementById('scanline');
 let current = null;
 let currentId = null;
+
+// Generic adapter loader — dynamic-imports ./<id>/adapter.js and adapts
+// (host, scene, ctx)=>void mount signature to hub's { mount, unmount } contract.
+async function loadGeneric(id){
+  const mod = await import(`./${id}/adapter.js`);
+  if(typeof mod.mount !== 'function') throw new Error(`./${id}/adapter.js missing export 'mount'`);
+  return {
+    _host:null,
+    async mount(stage, scene){
+      const host = document.createElement('div');
+      host.style.cssText = 'position:absolute;inset:0;overflow:hidden';
+      stage.appendChild(host);
+      this._host = host;
+      await mod.mount(host, scene, { bus });
+    },
+    unmount(){
+      try{ mod.unmount?.(); }catch(e){}
+      this._host?.remove(); this._host=null;
+    }
+  };
+}
 
 function clearStage(){
   [...stage.children].forEach(c=>{
@@ -487,8 +493,18 @@ async function mount(id){
   clearStage();
   scan.classList.remove('run'); void scan.offsetWidth; scan.classList.add('run');
   flash.classList.remove('run'); void flash.offsetWidth; flash.classList.add('run');
-  const a = adapters[id];
-  if(!a){ log(`adapter missing · ${id}`, 'err'); return; }
+  let a = adapters[id];
+  if(!a){
+    try{
+      log(`load · ./${id}/adapter.js`);
+      a = await loadGeneric(id);
+      adapters[id] = a; // memoize
+    }catch(e){
+      log(`adapter missing · ${id} · ${e.message}`, 'err');
+      document.getElementById('ch-state').textContent = 'error';
+      return;
+    }
+  }
   try{
     await a.mount(stage, getScene());
     current = a;
