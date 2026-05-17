@@ -28,8 +28,10 @@
 //   - Portals spec 007 hand-tracking (HoloKit iOS + Sentis editor)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PINCH_THRESHOLD_NORM = 0.04;   // normalized hand-space distance
-const ZOOM_DEADZONE = 0.02;
+const PINCH_GRIP_NORM    = 0.035;   // close → fire (tight)
+const PINCH_RELEASE_NORM = 0.060;   // open  → reset (loose, hysteresis kills jitter)
+const PINCH_COOLDOWN_MS  = 280;     // per-hand min gap between clicks
+const ZOOM_DEADZONE      = 0.02;
 const MEDIAPIPE_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
 
 export class Hands {
@@ -46,7 +48,8 @@ export class Hands {
     this.toggleBtn = null;
     this.previewEl = null;
     this.rafHandle = null;
-    this.prevPinch = {};        // per-hand pinch state
+    this.prevPinch = {};        // per-hand pinch state (latched: true while gripped)
+    this.lastClickAt = {};      // per-hand last click ms (cooldown gate)
     this.prevTwoHandDistance = null;
   }
 
@@ -187,15 +190,22 @@ export class Hands {
       if (!thumb || !index) return;
       const dx = thumb.x - index.x, dy = thumb.y - index.y;
       const dist = Math.hypot(dx, dy);
-      const pinch = dist < PINCH_THRESHOLD_NORM;
+      // Hysteresis: grip below tight threshold, release only above loose threshold.
+      const wasGripped = this.prevPinch[i] === true;
+      const pinch = wasGripped ? (dist < PINCH_RELEASE_NORM) : (dist < PINCH_GRIP_NORM);
       // Pointer follows index tip
       document.dispatchEvent(new CustomEvent('hands:pointer-move', {
         detail: { x: 1 - index.x, y: index.y, hand: i },
       }));
-      if (pinch && !this.prevPinch[i]) {
-        document.dispatchEvent(new CustomEvent('hands:click', {
-          detail: { x: 1 - index.x, y: index.y, hand: i },
-        }));
+      // Rising edge + per-hand cooldown → exactly one click per genuine pinch.
+      if (pinch && !wasGripped) {
+        const now = performance.now();
+        if (now - (this.lastClickAt[i] || 0) >= PINCH_COOLDOWN_MS) {
+          this.lastClickAt[i] = now;
+          document.dispatchEvent(new CustomEvent('hands:click', {
+            detail: { x: 1 - index.x, y: index.y, hand: i },
+          }));
+        }
       }
       this.prevPinch[i] = pinch;
     });
