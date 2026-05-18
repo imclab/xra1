@@ -13,7 +13,7 @@ Open spatial graph format. Voice your world into being. See through AI opacity. 
 
 MIT forever. No CLA. No gatekeeping. Shipping on iPhone today, 60 FPS.
 
-https://xrai.dev
+https://xra1.com
 
 ## 2 / why this format exists
 
@@ -85,8 +85,8 @@ Reference runtime adapters (Three.js, PlayCanvas, Unreal, visionOS) land weeks 2
 ## 10 / repo + spec
 
 Repo: github.com/imclab/xra1
-Spec: xrai.dev/SPEC.md
-Manifesto: xrai.dev/MANIFESTO.md
+Spec: xra1.com/SPEC.md
+Manifesto: xra1.com/MANIFESTO.md
 
 "This Week in XRAI" weekly update, starts Friday.
 

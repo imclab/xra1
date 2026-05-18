@@ -1,4 +1,10 @@
-# This Week in XRAI #3 — Bridge patterns: how 69 message types stay typed
+---
+title: This Week in XRAI #3 — The Bridge
+slug: tw-xrai-03-bridge
+date: 2026-05-16
+description: RN↔Unity bridge, the part that nobody wants to write twice.
+tags: weekly,bridge,unity
+---
 
 **Publish:** 2026-05-16 (Friday)
 **Register:** voice C (technical)
@@ -37,7 +43,7 @@ Three properties emerge from this:
 
 If your runtime has a rendering-side API, expose it through the same mental model. `add_entity / update_transform / set_animation / apply_relation / save / load` is the minimum useful surface. Anything more is optimization; anything less loses round-trip.
 
-The [@xrai/threejs-adapter](https://xra1.com/runtimes/threejs/) ships with exactly this shape: `loadXRAI(doc, THREE, opts)` is the import; `exportXRAI(scene)` preserves unknown fields for round-trip; `opts.on*` callbacks are the equivalent of bridge messages for live updates.
+The [@xrai/threejs-adapter](https://xrai.dev/runtimes/threejs/) ships with exactly this shape: `loadXRAI(doc, THREE, opts)` is the import; `exportXRAI(scene)` preserves unknown fields for round-trip; `opts.on*` callbacks are the equivalent of bridge messages for live updates.
 
 ## Worth calling out
 

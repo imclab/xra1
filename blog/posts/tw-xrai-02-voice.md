@@ -1,4 +1,10 @@
-# This Week in XRAI #2 — Voice + jARvis
+---
+title: This Week in XRAI #2 — Voice + jARvis
+slug: tw-xrai-02-voice
+date: 2026-05-09
+description: How XRAI scenes compose themselves from speech, and where jARvis fits.
+tags: weekly,voice,jarvis
+---
 
 **Publish:** 2026-05-09 (Friday after launch week)
 **Register:** voice B (manifesto) — deeper technical tour, not hype
@@ -49,7 +55,7 @@ Four facts that matter:
 ## Cross-reference
 
 - Portals CVPR 2026 paper § 3.3 voice-driven semantic actions
-- Voice-intelligence-live spec (Portals spec 008, upstream)
+- `specs/008-voice-intelligence-live/spec.md` in the Portals monorepo
 - `mcp-server/src/index.ts` `compose_scene` tool — same intent parser, MCP-exposed
 
 — @jamestunick

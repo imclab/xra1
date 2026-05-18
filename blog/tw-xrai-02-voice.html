@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>This Week in XRAI #2 — Voice + jARvis — XRAI</title>
+<meta name="description" content="How XRAI scenes compose themselves from speech, and where jARvis fits." />
+<meta property="og:title" content="This Week in XRAI #2 — Voice + jARvis" />
+<meta property="og:description" content="How XRAI scenes compose themselves from speech, and where jARvis fits." />
+<meta property="og:url" content="https://xra1.com/blog/tw-xrai-02-voice.html" />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="../styles/brand.css" />
+<link rel="stylesheet" href="../styles/blog.css" />
+<link rel="alternate" type="application/rss+xml" title="XRAI blog" href="./rss.xml" />
+</head>
+<body class="blog-post">
+<header class="blog-header">
+  <a class="blog-home" href="../index.html">xrai</a>
+  <nav><a href="./index.html">blog</a><a href="../rfcs/">rfcs</a><a href="../SPEC.md">spec</a><a href="https://github.com/imclab/xra1">github</a></nav>
+</header>
+<article>
+  <p class="meta"><time datetime="2026-05-09">2026-05-09</time> · <span class="tag">weekly</span> <span class="tag">voice</span> <span class="tag">jarvis</span></p>
+  <h1>This Week in XRAI #2 — Voice + jARvis</h1>
+  <p><strong>Publish:</strong> 2026-05-09 (Friday after launch week) <strong>Register:</strong> voice B (manifesto) — deeper technical tour, not hype <strong>Working title alt:</strong> &quot;How XRAI scenes compose themselves from speech&quot;</p>
+<hr/>
+<h2>Hook</h2>
+<p>XRAI is a format any LLM can author. That claim has teeth only if <em>authoring</em> is frictionless. This week: how Portals (the reference runtime) gets from speech to a valid XRAI scene in under 2 seconds.</p>
+<h2>What shipped this week</h2>
+<ul>
+<li>[your week&#39;s actual ship — update before posting]</li>
+<li>Link to Portals Spec 008 (voice-intelligence-live) status for readers who want the engineering detail</li>
+</ul>
+<h2>The pipeline</h2>
+<pre><code>mic (RN side)
+  → VAD (Silero local, 95% confidence threshold)
+  → STT (Gemini Live Native Audio OR local Whisper fallback)
+  → local intent parser (95% of commands resolved with zero cloud cost)
+  → Gemini 2.5 Flash fallback for ambiguous utterances
+  → JSON-Schema-constrained bridge message
+  → Unity SceneComposer.AddObject()
+  → XRAI export on save</code></pre>
+<p>Four facts that matter:</p>
+<ol>
+<li><strong>95% of commands are parsed locally.</strong> No round trip to a cloud model for &quot;make a blue cube.&quot; The XRAI scene emerges without a network. (See <code>src/services/voice/localIntentParser.ts</code> in the Portals repo for the vocab.)</li>
+<li><strong>The fallback is grounded.</strong> When local confidence dips below threshold, Gemini Live gets the scene context + the current XRAI graph as additional input. It completes an XRAI fragment, not an English description.</li>
+<li><strong>Confidence survives into XRAI.</strong> Every object emitted by voice carries its <code>voice_prompt</code> + <code>latency_ms</code> in <code>metadata</code>. Downstream tooling can see which entities were spoken vs tapped, and with what agent.</li>
+<li><strong>jARvis is the agent swarm that authors + queries + evolves XRAI graphs across sessions.</strong> Voice is one input modality; the goal is voice + gesture + gaze + predictive — all emitting the same format.</li>
+</ol>
+<h2>What we&#39;d like feedback on</h2>
+<ul>
+<li><strong>Have you tried an LLM authoring XRAI?</strong> Any model (Claude, GPT, Gemini, Llama) — where did it hallucinate? File the failure case as a gist + link in <code>github.com/imclab/xra1/discussions</code>.</li>
+<li><strong>Local intent parsing.</strong> Is 95% a realistic number for your domain? The Portals vocabulary leans AR-composition heavy; medical / civic / scientific domains have different priors. Happy to share the parser pattern.</li>
+</ul>
+<h2>Metric of the week</h2>
+<ul>
+<li>[N] scenes authored in XRAI this week (target: growing from last week)</li>
+<li>[N] external runtimes with passing conformance (target: 1 by end-of-month)</li>
+<li>[Pull the real numbers from <code>scripts/governance-readiness.sh</code> before publishing]</li>
+</ul>
+<h2>Cross-reference</h2>
+<ul>
+<li>Portals CVPR 2026 paper § 3.3 voice-driven semantic actions</li>
+<li><code>specs/008-voice-intelligence-live/spec.md</code> in the Portals monorepo</li>
+<li><code>mcp-server/src/index.ts</code> <code>compose_scene</code> tool — same intent parser, MCP-exposed</li>
+</ul>
+<p>— @jamestunick</p>
+</article>
+<footer class="blog-footer"><p>MIT · <a href="https://github.com/imclab/xra1">imclab/xra1</a> · <a href="./rss.xml">rss</a></p></footer>
+</body>
+</html>

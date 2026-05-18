@@ -1,4 +1,10 @@
-# This Week in XRAI #4 — Sparse-seed worlds: XRAI is DNA, not the organism
+---
+title: This Week in XRAI #4 — Voxels and the Volumetric Path
+slug: tw-xrai-04-voxel
+date: 2026-05-23
+description: Where representation tier T·10+ stops being theory and starts being a render.
+tags: weekly,voxel,t-ladder
+---
 
 **Publish:** 2026-05-23 (Friday)
 **Register:** voice B (manifesto-flavored, technical backbone)
@@ -47,7 +53,7 @@ If XRAI were full geometry, every scene would be the size of a game level. Spars
 
 ## The gap we'll fix in v1.2
 
-Today the generators are Portals-runtime-specific. The XRAI_generators extension is spec'd upstream (XRAI v2 format spec § 7 + voxel-world-generator spec 023) — but there's no published normative generator library. Version 1.2 target: ship a reference generator set (spiral, sphere, lsystem, tree, forest, city-block) as a separate spec so any runtime can match Portals' expansion behavior deterministically.
+Today the generators are Portals-runtime-specific. The XRAI_generators extension is spec'd in `specs/XRAI_FORMAT_SPECIFICATION_V2.md § 7` and covered by `specs/023-voxel-world-generator/` — but there's no published normative generator library. Version 1.2 target: ship a reference generator set (spiral, sphere, lsystem, tree, forest, city-block) as a separate spec so any runtime can match Portals' expansion behavior deterministically.
 
 ## Metric of the week
 

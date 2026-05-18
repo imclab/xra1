@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>XRAI blog</title>
+<link>https://xra1.com/blog/</link>
+<description>Writing from the XRAI team.</description>
+<language>en-us</language>
+<item>
+  <title>This Week in XRAI #5 — The Sight Triad</title>
+  <link>https://xra1.com/blog/tw-xrai-05-sight-triad.html</link>
+  <guid>https://xra1.com/blog/tw-xrai-05-sight-triad.html</guid>
+  <pubDate>Sat, 30 May 2026 00:00:00 GMT</pubDate>
+  <description>x-ray · god&#39;s-eye · infinite zoom. The philosophy behind why XRAI looks the way it does.</description>
+</item>
+<item>
+  <title>This Week in XRAI #4 — Voxels and the Volumetric Path</title>
+  <link>https://xra1.com/blog/tw-xrai-04-voxel.html</link>
+  <guid>https://xra1.com/blog/tw-xrai-04-voxel.html</guid>
+  <pubDate>Sat, 23 May 2026 00:00:00 GMT</pubDate>
+  <description>Where representation tier T·10+ stops being theory and starts being a render.</description>
+</item>
+<item>
+  <title>This Week in XRAI #3 — The Bridge</title>
+  <link>https://xra1.com/blog/tw-xrai-03-bridge.html</link>
+  <guid>https://xra1.com/blog/tw-xrai-03-bridge.html</guid>
+  <pubDate>Sat, 16 May 2026 00:00:00 GMT</pubDate>
+  <description>RN↔Unity bridge, the part that nobody wants to write twice.</description>
+</item>
+<item>
+  <title>This Week in XRAI #2 — Voice + jARvis</title>
+  <link>https://xra1.com/blog/tw-xrai-02-voice.html</link>
+  <guid>https://xra1.com/blog/tw-xrai-02-voice.html</guid>
+  <pubDate>Sat, 09 May 2026 00:00:00 GMT</pubDate>
+  <description>How XRAI scenes compose themselves from speech, and where jARvis fits.</description>
+</item>
+<item>
+  <title>This Week in XRAI #1 — Launch Week</title>
+  <link>https://xra1.com/blog/tw-xrai-01-launch-week.html</link>
+  <guid>https://xra1.com/blog/tw-xrai-01-launch-week.html</guid>
+  <pubDate>Sat, 02 May 2026 00:00:00 GMT</pubDate>
+  <description>First week of the public spec: HN, X, GitHub, what landed and what&#39;s next.</description>
+</item>
+</channel>
+</rss>

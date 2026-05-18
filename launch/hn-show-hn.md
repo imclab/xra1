@@ -2,7 +2,7 @@
 
 **Submit window:** Tue–Thu, 8–10am Pacific (highest HN traffic).
 **Title character limit:** 80. Do not editorialize. No emoji. No buzzwords.
-**URL:** `https://xrai.dev` (or `https://github.com/imclab/xra1` if xrai.dev not live).
+**URL:** `https://xra1.com` (or `https://github.com/imclab/xra1` if xra1.com not live).
 
 ---
 
@@ -17,7 +17,7 @@ Show HN: XRAI – an open spatial graph format for AI agents (MIT)
 ## URL
 
 ```
-https://xrai.dev
+https://xra1.com
 ```
 
 ## Body (first comment, post immediately after submitting)
@@ -51,8 +51,8 @@ I'd like feedback on three things specifically:
 3. What about the governance plan worries you?
 
 Repo: https://github.com/imclab/xra1
-Spec: https://xrai.dev/SPEC.md
-Manifesto: https://xrai.dev/MANIFESTO.md
+Spec: https://xra1.com/SPEC.md
+Manifesto: https://xra1.com/MANIFESTO.md
 
 ---
 
@@ -76,7 +76,7 @@ Manifesto: https://xrai.dev/MANIFESTO.md
 
 - [ ] Repo public at `github.com/imclab/xra1`
 - [ ] README.md + MANIFESTO.md + SPEC.md + LICENSE + CONTRIBUTING.md + CODE_OF_CONDUCT.md + CHANGELOG.md present
-- [ ] `xrai.dev` resolves (placeholder OK)
+- [ ] `xra1.com` resolves (placeholder OK)
 - [ ] At least 1 working example in `examples/`
 - [ ] Demo video link ready (can be unlisted YouTube; will drop in first comment reply)
 - [ ] James online + available for 2+ hours after submit to respond

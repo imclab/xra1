@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>This Week in XRAI #4 — Voxels and the Volumetric Path — XRAI</title>
+<meta name="description" content="Where representation tier T·10+ stops being theory and starts being a render." />
+<meta property="og:title" content="This Week in XRAI #4 — Voxels and the Volumetric Path" />
+<meta property="og:description" content="Where representation tier T·10+ stops being theory and starts being a render." />
+<meta property="og:url" content="https://xra1.com/blog/tw-xrai-04-voxel.html" />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="../styles/brand.css" />
+<link rel="stylesheet" href="../styles/blog.css" />
+<link rel="alternate" type="application/rss+xml" title="XRAI blog" href="./rss.xml" />
+</head>
+<body class="blog-post">
+<header class="blog-header">
+  <a class="blog-home" href="../index.html">xrai</a>
+  <nav><a href="./index.html">blog</a><a href="../rfcs/">rfcs</a><a href="../SPEC.md">spec</a><a href="https://github.com/imclab/xra1">github</a></nav>
+</header>
+<article>
+  <p class="meta"><time datetime="2026-05-23">2026-05-23</time> · <span class="tag">weekly</span> <span class="tag">voxel</span> <span class="tag">t-ladder</span></p>
+  <h1>This Week in XRAI #4 — Voxels and the Volumetric Path</h1>
+  <p><strong>Publish:</strong> 2026-05-23 (Friday) <strong>Register:</strong> voice B (manifesto-flavored, technical backbone)</p>
+<hr/>
+<h2>Hook</h2>
+<p>&quot;Create a forest world around me.&quot; That command in an XRAI-authoring agent should not produce a megabyte of tree geometry. It should produce <em>a rule</em> — a seed — that the runtime expands into a forest at load time.</p>
+<p>This is the core bet: <strong>XRAI ships the rules, not the pixels</strong>.</p>
+<h2>How a parametric scene compresses</h2>
+<p>The Portals paint module ships four parametric creators today — spiral, sphere, lsystem, tree. Each takes an anchor + params + a seed. Expanded at load time into a stroke or world patch. The XRAI fragment looks like:</p>
+<pre><code class="lang-json">{
+  &quot;type&quot;: &quot;object.parametric-stroke&quot;,
+  &quot;components&quot;: [{
+    &quot;type&quot;: &quot;paint.parametric&quot;,
+    &quot;props&quot;: {
+      &quot;creator&quot;: &quot;spiral&quot;,
+      &quot;seed&quot;: 42,
+      &quot;anchor&quot;: {&quot;x&quot;: 0, &quot;y&quot;: 0, &quot;z&quot;: -1},
+      &quot;params&quot;: {&quot;turns&quot;: 3, &quot;radius&quot;: 0.5},
+      &quot;brushGuid&quot;: &quot;neon_blue&quot;
+    }
+  }]
+}</code></pre>
+<p>That&#39;s ~200 bytes. The expanded stroke is ~30 KB of points when rendered. Ratio: 150:1.</p>
+<p>Voxel-world spec 023 pushes this further: biome recipes as JSON, expanded into 3D worlds by deterministic generators. Spec 022 (universal-asset-io) reads the same pattern for federated assets — the XRAI doc references a seed + a provider, not the glTF bytes.</p>
+<h2>Why it matters for the open substrate</h2>
+<p>If XRAI were full geometry, every scene would be the size of a game level. Sparse-seed format:</p>
+<ul>
+<li><strong>Human-readable.</strong> You can write a forest in 20 lines.</li>
+<li><strong>LLM-authorable.</strong> The rule surface is small enough for a model to compose without hallucinating coordinates.</li>
+<li><strong>Streamable.</strong> Generators expand lazily; large worlds don&#39;t need a download gate.</li>
+<li><strong>Remixable.</strong> Change the seed → get a variant. Change a param → get a branch. &quot;Across possibilities&quot; zoom becomes cheap.</li>
+<li><strong>Editable across sessions.</strong> The seed is stable; re-opening a scene regenerates the same forest. Until you change the params — then you have a new branch.</li>
+</ul>
+<h2>The gap we&#39;ll fix in v1.2</h2>
+<p>Today the generators are Portals-runtime-specific. The XRAI_generators extension is spec&#39;d in <code>specs/XRAI_FORMAT_SPECIFICATION_V2.md § 7</code> and covered by <code>specs/023-voxel-world-generator/</code> — but there&#39;s no published normative generator library. Version 1.2 target: ship a reference generator set (spiral, sphere, lsystem, tree, forest, city-block) as a separate spec so any runtime can match Portals&#39; expansion behavior deterministically.</p>
+<h2>Metric of the week</h2>
+<ul>
+<li>Sparse-seed scenes authored this week (<code>object.parametric-stroke</code> or <code>XRAI_generators.*</code>): [N]</li>
+</ul>
+<h2>Cross-reference</h2>
+<ul>
+<li>Portals Spec 023 voxel-world-generator</li>
+<li><code>unity/Assets/Scripts/Paint/Parametric/</code> — SphereCreator / SpiralCreator / LSystemCreator</li>
+<li><code>mcp-server/src/index.ts</code> <code>paint_emit_parametric</code> tool</li>
+</ul>
+<p>— @jamestunick</p>
+</article>
+<footer class="blog-footer"><p>MIT · <a href="https://github.com/imclab/xra1">imclab/xra1</a> · <a href="./rss.xml">rss</a></p></footer>
+</body>
+</html>

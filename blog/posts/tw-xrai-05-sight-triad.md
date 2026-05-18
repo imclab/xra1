@@ -1,4 +1,10 @@
-# This Week in XRAI #5 — The Sight Triad: x-ray, god's-eye, infinite zoom
+---
+title: This Week in XRAI #5 — The Sight Triad
+slug: tw-xrai-05-sight-triad
+date: 2026-05-30
+description: x-ray · god's-eye · infinite zoom. The philosophy behind why XRAI looks the way it does.
+tags: weekly,manifesto
+---
 
 **Publish:** 2026-05-30 (Friday)
 **Register:** voice B (manifesto)
@@ -50,8 +56,8 @@ If you're evaluating where XRAI goes next, these are the features to watch.
 
 ## Cross-reference
 
-- Portals constitution § "The Affirmative Mirror — Vision" (load-bearing)
-- Sight Triad spec audit (2026-04-22) — all 26 Portals specs classified
-- [`VISION.md`](../VISION.md) — canonical vision source, verbatim
+- `constitution.md § The Affirmative Mirror — Vision` (load-bearing)
+- `docs/audits/sight_triad_spec_audit_20260422.md` (all 26 Portals specs classified)
+- `specs/XXX-zero-to-one/xrai-website/VISION.md` (canonical vision source, verbatim)
 
 — @jamestunick

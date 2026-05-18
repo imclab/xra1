@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>This Week in XRAI #5 — The Sight Triad — XRAI</title>
+<meta name="description" content="x-ray · god&#39;s-eye · infinite zoom. The philosophy behind why XRAI looks the way it does." />
+<meta property="og:title" content="This Week in XRAI #5 — The Sight Triad" />
+<meta property="og:description" content="x-ray · god&#39;s-eye · infinite zoom. The philosophy behind why XRAI looks the way it does." />
+<meta property="og:url" content="https://xra1.com/blog/tw-xrai-05-sight-triad.html" />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="../styles/brand.css" />
+<link rel="stylesheet" href="../styles/blog.css" />
+<link rel="alternate" type="application/rss+xml" title="XRAI blog" href="./rss.xml" />
+</head>
+<body class="blog-post">
+<header class="blog-header">
+  <a class="blog-home" href="../index.html">xrai</a>
+  <nav><a href="./index.html">blog</a><a href="../rfcs/">rfcs</a><a href="../SPEC.md">spec</a><a href="https://github.com/imclab/xra1">github</a></nav>
+</header>
+<article>
+  <p class="meta"><time datetime="2026-05-30">2026-05-30</time> · <span class="tag">weekly</span> <span class="tag">manifesto</span></p>
+  <h1>This Week in XRAI #5 — The Sight Triad</h1>
+  <p><strong>Publish:</strong> 2026-05-30 (Friday) <strong>Register:</strong> voice B (manifesto)</p>
+<hr/>
+<h2>Hook</h2>
+<p>Every format is a philosophy in disguise. XRAI&#39;s philosophy is the Sight Triad.</p>
+<h2>The problem, one more time</h2>
+<p>We are blind. We are island minds. Code is opaque. AI is black-boxed. The web is flat. Every medium we inherited narrows the aperture further. The medium we build next either widens it or narrows it. Nothing is neutral.</p>
+<h2>The triad</h2>
+<p>Three complementary ways of seeing, each healing a different facet of the blindness:</p>
+<ul>
+<li><strong>X-ray vision</strong> — see <em>through</em> opacity. Through AI black boxes. Through code. Through provenance chains. Through invisible infrastructure costs. Reasoning becomes inspectable. Computation becomes accountable.</li>
+<li><strong>God&#39;s-eye view</strong> — see <em>over</em> topology. The landscape of a field. The dynamics of a market. The shape of a civilizational problem. Zoom out until the pattern is obvious.</li>
+<li><strong>Infinite zoom</strong> — see <em>across</em> four axes. Time (past → present → future, including counterfactuals). Possibilities (branches, what-ifs). Minds (your graph + mine + the agent&#39;s, federated). Scales (molecule → cosmos).</li>
+</ul>
+<p>A format that advances only one is incomplete. A feature that activates all three is gold-standard.</p>
+<h2>How XRAI carries this</h2>
+<ul>
+<li><strong>X-ray</strong> → every XRAI event has optional <code>causedBy</code> / <code>causes</code> fields (RFC 0001). Any agent&#39;s decision chain is auditable in the graph, not hidden behind a prompt.</li>
+<li><strong>God&#39;s-eye</strong> → XRAI&#39;s typed hypergraph (RFC 0002) + relation types (<code>parent-of</code>, <code>wire-binds</code>, <code>reacts-to-audio</code>, <code>tracks</code>) let a viewer render a scene as topology, not just geometry. The KB visualizer spec (006) is the reference UI.</li>
+<li><strong>Infinite zoom</strong> → temporal fields (<code>validFrom</code> / <code>validTo</code>), counterfactual <code>branch</code> field (RFC 0001), federated-graph metadata (planned RFC for v2.0). All four axes addressable.</li>
+</ul>
+<h2>What this means for runtimes</h2>
+<p>If you&#39;re building an XRAI runtime, you&#39;re building a seeing instrument. Think less &quot;how do I render a cube&quot; and more &quot;what does this scene let a user <em>see</em> that a flat UI wouldn&#39;t?&quot; The 20 use cases in <a href="../USE_CASES.md">USE_CASES.md</a> are all answers to that question.</p>
+<h2>Gold-standard specs (per the Sight Triad Spec Audit)</h2>
+<p>Three Portals specs activate all three pillars today:</p>
+<ul>
+<li><strong>Spec 006 kb-visualizer</strong> — x-ray (KB provenance) + god&#39;s-eye (topology of knowledge) + zoom (into nodes)</li>
+<li><strong>Spec 016 definitive-answer-engine</strong> — x-ray (calibrated confidence) + god&#39;s-eye (research landscape) + zoom (across minds, cross-CLI swarm)</li>
+<li><strong>Spec 021 PTHI</strong> — x-ray (inspectable properties) + god&#39;s-eye (topology around every object) + zoom (detail scales)</li>
+</ul>
+<p>If you&#39;re evaluating where XRAI goes next, these are the features to watch.</p>
+<h2>Metric of the week</h2>
+<ul>
+<li>External scenes authored that activate ≥ 2 pillars: [N]</li>
+<li>Reference runtimes with passing conformance: [N]</li>
+</ul>
+<h2>Cross-reference</h2>
+<ul>
+<li><code>constitution.md § The Affirmative Mirror — Vision</code> (load-bearing)</li>
+<li><code>docs/audits/sight_triad_spec_audit_20260422.md</code> (all 26 Portals specs classified)</li>
+<li><code>specs/XXX-zero-to-one/xrai-website/VISION.md</code> (canonical vision source, verbatim)</li>
+</ul>
+<p>— @jamestunick</p>
+</article>
+<footer class="blog-footer"><p>MIT · <a href="https://github.com/imclab/xra1">imclab/xra1</a> · <a href="./rss.xml">rss</a></p></footer>
+</body>
+</html>

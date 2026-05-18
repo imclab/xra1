@@ -32,7 +32,7 @@ We just shipped XRAI: an open, MIT-licensed spatial graph format. Voice your wor
 - Enterprise: wait for v1.1. No enterprise contracts for 12 months by design (premature commercialization captures the commons)
 
 Repo: github.com/imclab/xra1
-Spec: xrai.dev/SPEC.md
+Spec: xra1.com/SPEC.md
 
 Built by the Portals team (h3m.ai) — CVPR 2026 workshop paper, 60 FPS on iPhone, 2000+ tests, 370+ VFX, voice-to-scene in under 2 seconds.
 

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>This Week in XRAI #3 — The Bridge — XRAI</title>
+<meta name="description" content="RN↔Unity bridge, the part that nobody wants to write twice." />
+<meta property="og:title" content="This Week in XRAI #3 — The Bridge" />
+<meta property="og:description" content="RN↔Unity bridge, the part that nobody wants to write twice." />
+<meta property="og:url" content="https://xra1.com/blog/tw-xrai-03-bridge.html" />
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="../styles/brand.css" />
+<link rel="stylesheet" href="../styles/blog.css" />
+<link rel="alternate" type="application/rss+xml" title="XRAI blog" href="./rss.xml" />
+</head>
+<body class="blog-post">
+<header class="blog-header">
+  <a class="blog-home" href="../index.html">xrai</a>
+  <nav><a href="./index.html">blog</a><a href="../rfcs/">rfcs</a><a href="../SPEC.md">spec</a><a href="https://github.com/imclab/xra1">github</a></nav>
+</header>
+<article>
+  <p class="meta"><time datetime="2026-05-16">2026-05-16</time> · <span class="tag">weekly</span> <span class="tag">bridge</span> <span class="tag">unity</span></p>
+  <h1>This Week in XRAI #3 — The Bridge</h1>
+  <p><strong>Publish:</strong> 2026-05-16 (Friday) <strong>Register:</strong> voice C (technical)</p>
+<hr/>
+<h2>Hook</h2>
+<p>Most &quot;open&quot; formats fall apart at the integration boundary — the format is clean, but the bridge between authoring UI and rendering runtime is a JSON blob with no contract. XRAI in Portals goes the other way: <strong>the bridge IS the contract</strong>.</p>
+<h2>What&#39;s on the other side of <code>compose_scene</code>?</h2>
+<p>Portals runs React Native + Unity-as-library. Every user action — voice command, button tap, paint stroke — becomes a typed bridge message. There are 69 of them.</p>
+<pre><code class="lang-ts">// src/types/bridge.ts — single source of truth
+interface AddObjectMessage {
+  type: &#39;add_object&#39;;
+  id: string;
+  type_name: &#39;Cube&#39; | &#39;Sphere&#39; | &#39;Cylinder&#39; | ...;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: [number, number, number];
+  material?: MaterialPreset;
+  // ... typed through
+}</code></pre>
+<p>Three properties emerge from this:</p>
+<ol>
+<li><strong>XRAI-shaped on both sides.</strong> Every bridge message is a subset of an XRAI mutation. <code>add_object</code> = &quot;append an entity to scene.entities&quot;; <code>set_animation</code> = &quot;set entity.animation&quot;; <code>save_scene</code> = &quot;export the current XRAI doc&quot;; etc. No translation layer.</li>
+<li><strong>Type guards at the edges.</strong> <code>BridgeRouter.parseMessage()</code> is hand-rolled (allocation-free in Unity); TS side has <code>isAddObjectMessage()</code> discriminators. The 69 types can&#39;t silently drift.</li>
+<li><strong>The MCP server is the third side of the triangle.</strong> <code>paint_emit_stroke</code> and <code>compose_scene</code> (in <code>mcp-server/src/index.ts</code>) emit the same shapes that RN sends to Unity. Any MCP-compatible agent composes scenes through the same typed contract.</li>
+</ol>
+<h2>Why this matters for anyone building an XRAI runtime</h2>
+<p>If your runtime has a rendering-side API, expose it through the same mental model. <code>add_entity / update_transform / set_animation / apply_relation / save / load</code> is the minimum useful surface. Anything more is optimization; anything less loses round-trip.</p>
+<p>The <a href="https://xrai.dev/runtimes/threejs/">@xrai/threejs-adapter</a> ships with exactly this shape: <code>loadXRAI(doc, THREE, opts)</code> is the import; <code>exportXRAI(scene)</code> preserves unknown fields for round-trip; <code>opts.on*</code> callbacks are the equivalent of bridge messages for live updates.</p>
+<h2>Worth calling out</h2>
+<ul>
+<li><strong>Silent message drops are banned.</strong> <code>sendToUnity()</code> returns <code>bool</code> — callers only update local state on success. This prevented a week&#39;s worth of &quot;why doesn&#39;t the scene update?&quot; bugs in early Portals. Copy the pattern.</li>
+<li><strong>Every message is logged.</strong> Persistent <code>bridge_log.txt</code> on device. When a user reports &quot;I said X and nothing happened,&quot; the answer is always in the log.</li>
+</ul>
+<h2>Metric of the week</h2>
+<ul>
+<li>Conformance runtimes pass count: [N]</li>
+<li>External XRAI docs in the wild (GitHub code search): [N]</li>
+</ul>
+<h2>Cross-reference</h2>
+<ul>
+<li>Spec 001 unity-rn-bridge (Portals repo)</li>
+<li><code>src/types/bridge.ts</code> + <code>src/types/bridge.generated.ts</code></li>
+<li>RFC 0003 conformance tests — the external equivalent of this type safety</li>
+</ul>
+<p>— @jamestunick</p>
+</article>
+<footer class="blog-footer"><p>MIT · <a href="https://github.com/imclab/xra1">imclab/xra1</a> · <a href="./rss.xml">rss</a></p></footer>
+</body>
+</html>

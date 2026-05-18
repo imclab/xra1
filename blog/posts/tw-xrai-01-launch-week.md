@@ -1,7 +1,13 @@
-# This Week in XRAI #1
+---
+title: This Week in XRAI #1 — Launch Week
+slug: tw-xrai-01-launch-week
+date: 2026-05-02
+description: First week of the public spec: HN, X, GitHub, what landed and what's next.
+tags: weekly,launch
+---
 
 **Publish date:** 2026-05-02 (Friday after launch).
-**Channels:** blog post on xra1.com, dev.to cross-post, X thread (link to blog), LinkedIn.
+**Channels:** blog post on xrai.dev, dev.to cross-post, X thread (link to blog), LinkedIn.
 **Template note:** every Friday. Consistency > volume. Three paragraphs + a metric + a call-to-action. Never skip a week.
 
 ---
@@ -12,7 +18,7 @@
 
 **What shipped**
 - v1.0 spec public at github.com/imclab/xra1
-- xra1.com landing page + manifesto + SPEC
+- xrai.dev landing page + manifesto + SPEC
 - Reference runtime: Portals (Unity 6 + React Native) in production
 - MCP server scaffold at `/mcp-server` (9 tools defined, implementation week 2)
 

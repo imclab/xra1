@@ -13,7 +13,7 @@ Open spatial graph format. Voice your world into being. See through AI opacity. 
 
 Looking for feedback from folks who've actually tried to get an LLM to describe a 3D scene and hit walls.
 
-🌐 https://xrai.dev
+🌐 https://xra1.com
 
 ## Post 2
 

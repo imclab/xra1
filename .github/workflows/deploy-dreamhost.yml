@@ -1,0 +1,74 @@
+name: Deploy to Dreamhost (xra1.com)
+
+# Push to main → build blog → rsync entire repo to Dreamhost.
+# GitHub Pages publishes the same commit at imclab.github.io/xra1/ via legacy Pages source (no action needed here).
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   DREAMHOST_SSH_KEY   — private key (ed25519 or rsa). Public half pasted in Dreamhost Panel → Users → Manage SSH Keys.
+#   DREAMHOST_HOST      — sftp host, e.g. iad1-shared-b7-44.dreamhost.com (Panel → Users → Manage Users)
+#   DREAMHOST_USER      — shell user, e.g. xra1user
+#   DREAMHOST_PATH      — absolute remote path, e.g. /home/xra1user/xra1.com
+#
+# Optional:
+#   DREAMHOST_PORT      — defaults to 22
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-dreamhost
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build blog (zero-dep ESM)
+        run: node blog/build.mjs
+
+      - name: Install rsync
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
+      - name: Setup SSH key
+        env:
+          SSH_KEY: ${{ secrets.DREAMHOST_SSH_KEY }}
+          SSH_HOST: ${{ secrets.DREAMHOST_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/dreamhost
+          chmod 600 ~/.ssh/dreamhost
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Rsync to Dreamhost
+        env:
+          USER: ${{ secrets.DREAMHOST_USER }}
+          HOST: ${{ secrets.DREAMHOST_HOST }}
+          REMOTE: ${{ secrets.DREAMHOST_PATH }}
+          PORT: ${{ secrets.DREAMHOST_PORT || '22' }}
+        run: |
+          rsync -avz --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.githooks/' \
+            --exclude='node_modules/' \
+            --exclude='.DS_Store' \
+            --exclude='__tests__/' \
+            --exclude='*.bak' \
+            -e "ssh -i ~/.ssh/dreamhost -p $PORT -o StrictHostKeyChecking=yes" \
+            ./ "$USER@$HOST:$REMOTE/"
+
+      - name: Verify deploy
+        run: |
+          echo "Pushed commit: ${{ github.sha }}"
+          echo "GH Pages: https://imclab.github.io/xra1/"
+          echo "Dreamhost: https://xra1.com/"

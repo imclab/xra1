@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Discord commit notification (non-blocking).
+COMMIT_HASH=$(git rev-parse HEAD)
+SCRIPT_DIR="$(git rev-parse --show-toplevel)/scripts"
+if [ -x "$SCRIPT_DIR/post_commit_to_discord.sh" ]; then
+  "$SCRIPT_DIR/post_commit_to_discord.sh" "$COMMIT_HASH" >> /tmp/discord_post.log 2>&1 &
+  disown
+fi
+exit 0
