@@ -332,6 +332,61 @@ a:hover { color: var(--accent); border-bottom-color: var(--accent); }
   display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
 }
 
+/* ── Runtime plate — bold HUD hero for runtime adapter pages ──────────────
+   Additive: only applies where .runtime-hero is used. No JS. */
+.runtime-hero {
+  position: relative;
+  margin: 8px 0 56px;
+  padding: clamp(28px, 5vw, 48px) clamp(22px, 4vw, 40px);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  background:
+    radial-gradient(130% 150% at 0% 0%, rgba(247, 255, 168, 0.06), transparent 55%),
+    var(--bg-deeper);
+  overflow: hidden;
+}
+.runtime-hero::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: repeating-linear-gradient(
+    0deg, transparent 0 3px, rgba(247, 255, 168, 0.02) 3px 4px);
+}
+.runtime-hero > * { position: relative; }
+.runtime-hero .rh-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10.5px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--muted-soft); margin-bottom: 20px;
+}
+.runtime-hero .rh-status::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 10px var(--accent-glow);
+}
+.runtime-hero.live .rh-status::before { background: var(--iris-hand); box-shadow: 0 0 10px rgba(46, 204, 113, 0.55); }
+.runtime-hero.consumer .rh-status::before { background: var(--secondary); box-shadow: 0 0 10px rgba(168, 168, 255, 0.45); }
+.runtime-hero h1 {
+  font-family: 'Satoshi', sans-serif; font-weight: 900;
+  font-size: clamp(40px, 7vw, 76px);
+  letter-spacing: -0.045em; line-height: 0.88;
+  color: var(--fg); margin: 0; border: 0; padding: 0;
+}
+.runtime-hero h1 .accent { color: var(--accent); }
+.runtime-hero .rh-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 1px; margin-top: 30px;
+  background: var(--border); border: 1px solid var(--border);
+}
+.runtime-hero .rh-cell { background: var(--bg-deeper); padding: 13px 15px; }
+.runtime-hero .rh-cell .k {
+  display: block; font-family: 'JetBrains Mono', monospace;
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--muted); margin-bottom: 5px;
+}
+.runtime-hero .rh-cell .v {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: var(--fg-dim); line-height: 1.35;
+}
+
 /* Utility */
 .hide { display: none !important; }
 .accent-fg { color: var(--accent); }
