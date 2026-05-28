@@ -11,6 +11,16 @@ import {
   registerAdapter, newScene, entity, relation, event, httpGet,
 } from '../xrai-core.js';
 
+// Side-effect imports — adapters self-register on load
+import './voxel.js';
+import './icosa.js';
+// 4-modal procgen (voxel/shader/particle/icosa + mix) under `procgen.*` namespace
+import '../procgen/index.js';
+// Data-source dataviz (webpage/github/xrai-kg/social) under `dataviz.*` namespace
+import '../dataviz/index.js';
+// KG-from-seed (book/concept/paper/code/prompt) → `graph.seed`
+import '../graph/seed.js';
+
 /* ─── 1. Webpage / website — DOM or URL → nodes-per-section ─────────────── */
 registerAdapter('webpage', async (input) => {
   // input: URL string OR {html, url}
@@ -315,58 +325,6 @@ registerAdapter('concept-graph', async (input) => {
   return doc;
 });
 
-/* ─── 13. YouTube — video → chapters + creator + topic graph ─────────── */
-registerAdapter('youtube', async (input, opts = {}) => {
-  // input: video URL or 11-char video id; YouTube oEmbed is keyless + CORS-open.
-  // Chapters / creator are derived from oEmbed + optional caller-supplied { chapters, topics }.
-  const raw = typeof input === 'string' ? input : input.url || input.id;
-  const id = (raw.match(/(?:v=|youtu\.be\/|shorts\/)([\w-]{11})/) || [, raw])[1];
-  const oembed = await httpGet(
-    `https://www.youtube.com/oembed?url=https%3A//www.youtube.com/watch?v=${id}&format=json`,
-  );
-  const doc = newScene({ origin: 'youtube' });
-  const rootId = `yt:${id}`;
-  doc.scene.entities.push(entity(rootId, 'object.video', {
-    label: oembed.title || `YouTube ${id}`, glyph: '▶', group: 'media',
-    url: `https://www.youtube.com/watch?v=${id}`,
-    params: {
-      thumbnail: oembed.thumbnail_url,
-      width: oembed.width, height: oembed.height,
-      provider: 'youtube',
-    },
-  }));
-  // Creator → channel node + relation
-  if (oembed.author_name) {
-    const ch = `yt-channel:${(oembed.author_url || '').split('/').pop() || oembed.author_name}`;
-    doc.scene.entities.push(entity(ch, 'agent', {
-      label: oembed.author_name, glyph: '☷', group: 'creator', url: oembed.author_url,
-    }));
-    doc.scene.relations.push(relation(rootId, ch, 'created-by'));
-  }
-  // Chapters (caller may pass) — emit timeline events at each start_s
-  (input.chapters || opts.chapters || []).forEach((c, i) => {
-    const cid = `${rootId}#ch${i}`;
-    doc.scene.entities.push(entity(cid, 'object.web-subtree', {
-      label: c.title, glyph: '▤', group: 'chapter',
-      params: { start_s: c.start_s, end_s: c.end_s },
-    }));
-    doc.scene.relations.push(relation(rootId, cid, 'parent-of'));
-    doc.scene.events.push(event('chapter-start', cid, {
-      t: new Date(Date.UTC(2000, 0, 1, 0, 0, c.start_s)).toISOString(),
-    }));
-  });
-  // Topic graph (caller may pass) — concept entities + 'about' relations
-  (input.topics || opts.topics || []).forEach((t) => {
-    const tid = `concept:${t.replace(/\s+/g, '_')}`;
-    doc.scene.entities.push(entity(tid, 'concept', {
-      label: t, glyph: '◆', group: 'concept',
-    }));
-    doc.scene.relations.push(relation(rootId, tid, 'about'));
-  });
-  doc.metadata = { sourceUrl: `https://www.youtube.com/watch?v=${id}`, title: oembed.title, provider: 'youtube' };
-  return doc;
-});
-
 /* ─── Available adapter list (for hub / configs UI) ──────────────────── */
 export const AVAILABLE = [
   { name: 'webpage',         label: 'Webpage / website',        inputHint: 'URL or HTML string' },
@@ -381,7 +339,8 @@ export const AVAILABLE = [
   { name: 'markdown-spec',   label: 'Tech spec (Markdown)',     inputHint: 'markdown text' },
   { name: 'test-workflow',   label: 'Test workflow',            inputHint: '{name, steps[]}' },
   { name: 'concept-graph',   label: 'Concept graph',            inputHint: '{concepts[], edges[]}' },
-  { name: 'youtube',         label: 'YouTube video',            inputHint: 'video URL or 11-char id' },
+  { name: 'voxel',           label: 'Voxel generator scene',    inputHint: '{kind, plan:[{category,type,x,y,z,rotation}]}' },
+  { name: 'icosa',           label: 'Icosa Gallery search',     inputHint: 'keywords (e.g. "dragon")' },
 ];
 
 export default AVAILABLE;
