@@ -1318,19 +1318,25 @@ document.getElementById('user-input').addEventListener('input', function() {
 });
 
 async function handleUserInput(text, forceImage = false) {
-  addMsg('user', text);
-  let imageB64 = null;
-  if (camStream && (forceImage || autoVision)) {
-    const diff = computeDiff();
-    if (forceImage || diff > 0.15) imageB64 = grabFrame();
+  try {
+    addMsg('user', text);
+    let imageB64 = null;
+    if (camStream && (forceImage || autoVision)) {
+      const diff = computeDiff();
+      if (forceImage || diff > 0.15) imageB64 = grabFrame();
+    }
+    const result = await callJarvis(text, imageB64);
+    if (!result) return;
+    addMsg('assistant', result.reply, result.latency);
+    updateGraph(text, result.reply);
+    if (imageB64) handleCameraObjectDetection(result.reply);
+    speak(result.reply);
+    const memEl = document.getElementById('mem-count');
+    if (memEl) memEl.textContent = 'memory: ' + Math.floor(history.length / 2) + ' turns';
+  } catch (err) {
+    console.warn('[jarvis] handleUserInput failed:', err);
+    toast('input failed — see console');
   }
-  const result = await callJarvis(text, imageB64);
-  if (!result) return;
-  addMsg('assistant', result.reply, result.latency);
-  updateGraph(text, result.reply);
-  if (imageB64) handleCameraObjectDetection(result.reply);
-  speak(result.reply);
-  document.getElementById('mem-count').textContent = 'memory: ' + Math.floor(history.length / 2) + ' turns';
 }
 
 async function fireComposerPrompt(text) {
@@ -2254,6 +2260,12 @@ window.__currentFocus = null;
 window.__setFocus = setFocus;
 window.__handleCameraObjectDetection = handleCameraObjectDetection;
 window.__handleVoiceMentionBoost = handleVoiceMentionBoost;
+
+// ── unhandled promise guard ──
+window.addEventListener('unhandledrejection', (e) => {
+  console.warn('[jarvis] unhandled promise:', e.reason);
+  e.preventDefault();
+});
 
 // ── init ──
 window.addEventListener('DOMContentLoaded', () => {

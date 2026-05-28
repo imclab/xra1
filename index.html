@@ -760,9 +760,21 @@
 }
 </script>
 
-<!-- 3d-force-graph uses SEA.js-style loading; load as global script for stability -->
-<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-<script src="https://unpkg.com/3d-force-graph@1.73.4/dist/3d-force-graph.min.js"></script>
+<!-- Expose THREE as ESM module then load 3d-force-graph UMD which expects window.THREE.
+     r150+ deprecated three.min.js global build; using ESM avoids the deprecation warning. -->
+<script type="module">
+  import * as THREE from 'three';
+  window.THREE = THREE;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/3d-force-graph@1.73.4/dist/3d-force-graph.min.js';
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  window.__forceGraphReady = true;
+  window.dispatchEvent(new Event('force-graph-ready'));
+</script>
 
 <script type="module">
 import { marked } from 'https://esm.sh/marked@11.1.1';

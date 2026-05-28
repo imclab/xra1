@@ -74,6 +74,7 @@ const fmt = (d) => new Date(d).toISOString().slice(0,10);
 const fmtT = (d) => new Date(d).toISOString().slice(11,16);
 
 (async () => {
+  try {
   const r = await fetch('data/dev-snapshot.json');
   if (!r.ok) { peelEl('meta').textContent = 'snapshot missing — run: node scripts/build_dev_snapshot.cjs'; return; }
   const snap = await r.json();
@@ -133,6 +134,10 @@ const fmtT = (d) => new Date(d).toISOString().slice(11,16);
   }
   paint();
   peelEl('filter').addEventListener('input', e => paint(e.target.value));
+  } catch (err) {
+    console.warn('[dev] init failed:', err);
+    peelEl('meta').textContent = 'dev snapshot load failed — see console';
+  }
 })();
 
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
