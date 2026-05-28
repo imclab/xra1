@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hologram - Portals</title>
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="video.other">
+    <meta property="og:title" content="Check out my Hologram on Portals">
+    <meta property="og:description" content="Experience AR holograms - create your own with the Portals app">
+    <meta property="og:site_name" content="Portals">
+    <meta property="og:image" id="og-image" content="">
+    <meta property="og:video" id="og-video" content="">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="player">
+    <meta name="twitter:title" content="Hologram on Portals">
+    <meta name="twitter:player" id="twitter-player" content="">
+    <meta name="twitter:player:width" content="360">
+    <meta name="twitter:player:height" content="640">
+
+    <!-- iOS Smart App Banner -->
+    <meta name="apple-itunes-app" content="app-id=PORTALS_APP_ID">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="favicon.png">
+
+    <!-- Brand fonts — Satoshi (display) + JetBrains Mono (HUD/telemetry) -->
+    <link rel="preconnect" href="https://api.fontshare.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles/viewer.css">
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+        import { getFirestore, doc, getDoc, updateDoc, increment } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+
+        // Firebase config (public - read-only access via security rules)
+        const firebaseConfig = {
+            apiKey: window.PORTALS_CONFIG?.firebaseApiKey || "REPLACE_WITH_FIREBASE_API_KEY",
+            authDomain: "portals-bb9d9.firebaseapp.com",
+            projectId: "portals-bb9d9",
+            storageBucket: "portals-bb9d9.firebasestorage.app",
+            messagingSenderId: "498765366652",
+            appId: "1:498765366652:web:b3858c80d4e094b78e50f9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Parse hologram ID from URL path
+        // Supports: /h/{id}, /{id}, ?id={id}
+        function getHologramId() {
+            const path = window.location.pathname;
+            const params = new URLSearchParams(window.location.search);
+
+            // Check path patterns
+            const pathMatch = path.match(/\/h\/([a-zA-Z0-9]+)/);
+            if (pathMatch) return pathMatch[1];
+
+            const directMatch = path.match(/\/([a-zA-Z0-9]{8,})/);
+            if (directMatch) return directMatch[1];
+
+            // Fallback to query param
+            return params.get('id');
+        }
+
+        async function loadHologram() {
+            const hologramId = getHologramId();
+            const container = document.getElementById('hologram-container');
+            const video = document.getElementById('hologram-video');
+            const poster = document.getElementById('hologram-poster');
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const username = document.getElementById('creator-username');
+            const viewCount = document.getElementById('view-count');
+
+            if (!hologramId) {
+                showError('No hologram ID provided');
+                return;
+            }
+
+            try {
+                // Fetch hologram metadata
+                const docRef = doc(db, 'holograms', hologramId);
+                const snapshot = await getDoc(docRef);
+
+                if (!snapshot.exists()) {
+                    showError('Hologram not found');
+                    return;
+                }
+
+                const data = snapshot.data();
+
+                // Update OG tags for social sharing
+                document.getElementById('og-image').content = data.thumbnailUrl || '';
+                document.getElementById('og-video').content = data.videoUrl || '';
+                document.getElementById('twitter-player').content = window.location.href;
+                document.title = `Hologram by ${data.username || 'Anonymous'} - Portals`;
+
+                // Set video source
+                video.src = data.videoUrl;
+                video.poster = data.thumbnailUrl || '';
+
+                // Show creator info
+                if (data.username) {
+                    username.textContent = `@${data.username}`;
+                }
+
+                // Show view count
+                if (data.viewCount !== undefined) {
+                    viewCount.textContent = formatViewCount(data.viewCount);
+                }
+
+                // Increment view count
+                await updateDoc(docRef, {
+                    viewCount: increment(1)
+                }).catch(() => {}); // Ignore errors (might not have write permission)
+
+                // Hide loading, show content
+                loading.classList.add('hidden');
+                container.classList.remove('hidden');
+
+                // Auto-play on interaction (mobile requires user gesture)
+                document.addEventListener('click', () => {
+                    video.play().catch(() => {});
+                }, { once: true });
+
+            } catch (err) {
+                console.error('Failed to load hologram:', err);
+                showError('Failed to load hologram');
+            }
+        }
+
+        function showError(message) {
+            document.getElementById('loading').classList.add('hidden');
+            const errorEl = document.getElementById('error');
+            errorEl.querySelector('.error-message').textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        function formatViewCount(count) {
+            if (count >= 1000000) {
+                return (count / 1000000).toFixed(1) + 'M views';
+            } else if (count >= 1000) {
+                return (count / 1000).toFixed(1) + 'K views';
+            }
+            return count + ' views';
+        }
+
+        // Load on DOM ready
+        document.addEventListener('DOMContentLoaded', loadHologram);
+    </script>
+</head>
+<body>
+    <!-- Loading State -->
+    <div id="loading" class="loading-container">
+        <div class="spinner"><i></i></div>
+        <p class="loading-text">Decoding hologram</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="error-container hidden">
+        <div class="error-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        </div>
+        <p class="error-message">Hologram not found</p>
+        <a href="https://portals.app" class="cta-button">Get Portals App</a>
+    </div>
+
+    <!-- Hologram Content -->
+    <div id="hologram-container" class="hologram-container hidden">
+        <!-- Video Player -->
+        <div class="video-wrapper">
+            <video
+                id="hologram-video"
+                playsinline
+                loop
+                muted
+                autoplay
+                preload="auto"
+            ></video>
+
+            <!-- Play Button Overlay -->
+            <div class="play-overlay" id="play-overlay">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="white">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Creator Info -->
+        <div class="creator-info">
+            <span id="creator-username" class="username"></span>
+            <span class="separator">•</span>
+            <span id="view-count" class="views"></span>
+        </div>
+
+        <!-- CTA Section -->
+        <div class="cta-section">
+            <div class="portals-logo">
+                <img src="portals-logo.svg" alt="Portals" class="logo-img">
+            </div>
+            <p class="cta-text">Create your own AR holograms</p>
+            <a href="https://apps.apple.com/app/portals-ar/idPORTALS_APP_ID" class="cta-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                <span>Download Portals</span>
+            </a>
+            <p class="made-with">Made with Portals</p>
+        </div>
+    </div>
+
+    <script>
+        // Embed mode (?embed=1) — hide chrome for iframes (README URL patterns)
+        if (new URLSearchParams(window.location.search).get('embed') === '1') {
+            document.body.classList.add('embed');
+        }
+
+        // Handle play button click
+        const video = document.getElementById('hologram-video');
+        const playOverlay = document.getElementById('play-overlay');
+
+        playOverlay.addEventListener('click', () => {
+            video.play();
+            playOverlay.classList.add('hidden');
+        });
+
+        video.addEventListener('play', () => {
+            playOverlay.classList.add('hidden');
+        });
+
+        video.addEventListener('pause', () => {
+            if (!video.ended) {
+                playOverlay.classList.remove('hidden');
+            }
+        });
+
+        // Toggle play/pause on video click
+        video.addEventListener('click', () => {
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        });
+    </script>
+</body>
+</html>
