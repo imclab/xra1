@@ -1,0 +1,888 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>xrai · viewer / editor / telepresence</title>
+  <meta name="description" content="XRAI viewer / editor / hologram telepresence. Mac/PC/mobile browser + Vision Pro + Quest browser + Portals iOS app peers.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23f7ffa8'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@500,700&display=swap">
+  <link rel="stylesheet" href="styles/brand.css">
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "livekit-client": "https://esm.sh/livekit-client@2.7.0",
+      "@xrai/threejs": "./runtimes/threejs/src/index.js",
+      "@xrai/core": "./js/xrai-core.js"
+    }
+  }
+  </script>
+
+  <style>
+    /* Local tokens override brand.css for viewer-specific HUD context.
+       --accent = Iris glow (brand canon); fg = white text per spec. */
+    :root {
+      color-scheme: dark;
+      --accent: #f7ffa8;        /* Iris glow — emphasis only (CTAs, active states) */
+      --bg: #000000;            /* pure-black ground per brand */
+      --bg-glass: rgba(12,12,12,0.78);
+      --bg-glass-hi: rgba(20,20,20,0.92);
+      --fg: #ffffff;            /* primary text */
+      --fg-mute: #b8b8b8;
+      --hi: #ffffff;            /* legacy alias — kept for downstream compat */
+      --dim: #6a6a6a;
+      --border-soft: rgba(255,255,255,0.10);
+      --border-strong: rgba(255,255,255,0.22);
+      --warn: #ff7a59;
+      --glow-accent: 0 0 0 1px rgba(247,255,168,0.35), 0 8px 24px -10px rgba(247,255,168,0.18);
+      --blur-glass: saturate(180%) blur(16px);
+      --t-fast: 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+      --display: 'Satoshi', -apple-system, system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; background:var(--bg); color:var(--fg); font-family: var(--mono); overflow: hidden; height:100%; }
+    #stage { position: fixed; inset: 0; }
+    #stage canvas { display: block; }
+
+    /* Subtle scanline overlay — HUD aesthetic, low opacity */
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 5;
+      background: repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 1px, transparent 1px 3px);
+      mix-blend-mode: overlay;
+    }
+
+    /* Wordmark — top-right, monospace caps, dot prefix */
+    #wordmark {
+      position: fixed; top: 14px; right: 16px; z-index: 9;
+      font-family: var(--display); font-weight: 700; font-size: 13px;
+      letter-spacing: 0.04em; color: var(--fg-mute); text-transform: uppercase;
+      display: flex; align-items: center; gap: 8px;
+      pointer-events: none; user-select: none;
+    }
+    #wordmark::before {
+      content: ''; width: 6px; height: 6px; background: var(--accent);
+      box-shadow: 0 0 8px var(--accent); border-radius: 999px;
+      animation: pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 0.85; } 50% { opacity: 0.35; } }
+
+    #hud { position: fixed; top: 12px; left: 12px; z-index: 10; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100vw - 24px); }
+    #hud button, .pill {
+      background: var(--bg-glass); color: var(--fg-mute);
+      border: 1px solid var(--border-soft); border-radius: 2px;
+      padding: 7px 12px; font-family: var(--mono); font-size: 11.5px;
+      letter-spacing: 0.04em; text-transform: lowercase;
+      cursor: pointer; backdrop-filter: var(--blur-glass); -webkit-backdrop-filter: var(--blur-glass);
+      transition: color var(--t-fast), background var(--t-fast), border-color var(--t-fast), box-shadow var(--t-fast);
+    }
+    #hud button:hover { color: var(--fg); border-color: var(--border-strong); background: var(--bg-glass-hi); }
+    #hud button[aria-pressed="true"] {
+      background: var(--accent); color: #000; border-color: var(--accent);
+      box-shadow: var(--glow-accent);
+    }
+
+    .pill { cursor: default; background: transparent; border: 0; padding: 7px 8px; color: var(--dim); }
+    .pill::before { content: '·'; color: var(--accent); margin-right: 6px; }
+    .pill b { color: var(--fg); font-weight: 500; }
+
+    #status { position: fixed; bottom: 12px; left: 12px; z-index: 10; font-size: 10.5px; color: var(--dim); max-width: 60vw; font-family: var(--mono); letter-spacing: 0.04em; }
+    #status .row { background: var(--bg-glass); padding: 4px 10px; border-radius: 2px; margin-top: 4px; display: inline-block; border: 1px solid var(--border-soft); }
+    #status .err { color: var(--warn); }
+
+    #peers { position: fixed; bottom: 12px; right: 12px; z-index: 10; display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+    .peer { background: var(--bg-glass); border: 1px solid var(--border-soft); border-radius: 2px; padding: 5px 11px; font-size: 11px; color: var(--fg-mute); font-family: var(--mono); letter-spacing: 0.04em; }
+    .peer.self { color: var(--accent); border-color: rgba(247,255,168,0.30); }
+
+    #editor { position: fixed; top: 60px; left: 12px; z-index: 10; display: none; flex-direction: column; gap: 6px; background: rgba(20,20,20,0.9); border: 1px solid var(--border-strong); border-radius: 4px; padding: 10px; max-width: 240px; backdrop-filter: blur(8px); }
+    body.edit #editor { display: flex; }
+    #editor h3 { margin: 0 0 4px; font-size: 11px; color: var(--dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
+    #editor .group { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    #editor button { font-size: 11px; padding: 5px 7px; background:#1a1a1a; border:1px solid #2c2c2c; color:#ddd; border-radius:6px; cursor:pointer; }
+    #editor button:hover { background:#222; color: var(--fg); border-color:#555; }
+
+    #toast { position: fixed; left: 50%; bottom: 60px; transform: translateX(-50%); background: #f7ffa8; color: #000; padding: 8px 16px; border-radius: 20px; font-size: 12px; opacity: 0; transition: opacity 0.25s; z-index: 100; pointer-events: none; }
+    #toast.show { opacity: 1; }
+
+    #load-panel { position: fixed; top: 60px; left: 260px; z-index: 11; display: none; flex-direction: column; gap: 4px; background: rgba(20,20,20,0.95); border: 1px solid var(--border-strong); border-radius: 4px; padding: 10px; max-width: 320px; min-width: 220px; max-height: 70vh; overflow-y: auto; backdrop-filter: blur(8px); }
+    #load-panel.show { display: flex; }
+    #load-panel h3 { margin: 0 0 6px; font-size: 11px; color: var(--dim); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; display: flex; justify-content: space-between; }
+    #load-panel h3 .close { color: var(--dim); cursor: pointer; font-size: 14px; line-height: 1; }
+    #load-panel .row { display: flex; gap: 4px; align-items: center; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+    #load-panel .row:hover { background: #1a1a1a; }
+    #load-panel .row .title { flex: 1; color: #ddd; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #load-panel .row .meta { color: var(--dim); font-size: 10px; }
+    #load-panel .row .del { color: var(--warn); font-size: 11px; padding: 0 4px; cursor: pointer; visibility: hidden; }
+    #load-panel .row:hover .del { visibility: visible; }
+    #load-panel .empty { color: var(--dim); font-size: 11px; padding: 8px; text-align: center; }
+
+    #chat { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; gap: 6px; background: rgba(20,20,20,0.85); border: 1px solid var(--border-strong); border-radius: 4px; padding: 4px 4px 4px 14px; backdrop-filter: blur(8px); min-width: 320px; max-width: 70vw; }
+    #chat input { flex: 1; background: transparent; border: none; color: var(--fg); font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.01em; outline: none; padding: 6px 0; }
+    #chat input::placeholder { color: var(--dim); }
+    #chat button { background: var(--accent); color: #000; border: none; border-radius: 2px; padding: 6px 14px; font-family: var(--mono); font-size: 11.5px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; transition: box-shadow var(--t-fast); }
+    #chat button:not(:disabled):hover { box-shadow: var(--glow-accent); }
+    #chat button:disabled { opacity: 0.4; cursor: wait; }
+
+    noscript, .nojs { color: var(--warn); padding: 24px; }
+  </style>
+</head>
+<body>
+  <noscript><div class="nojs">XRAI viewer requires JavaScript.</div></noscript>
+
+  <div id="stage"></div>
+  <div id="wordmark">XRAI · viewer</div>
+
+  <div id="hud">
+    <button id="btn-edit"  title="Toggle editor mode (E)">edit</button>
+    <button id="btn-live"  title="Join LiveKit hologram room">live</button>
+    <button id="btn-holo"  title="Publish me as an RGBD hologram (requires live)" aria-pressed="false">holo</button>
+    <button id="btn-xr"    title="Enter WebXR (Vision Pro / Quest)" style="display:none">XR</button>
+    <button id="btn-voice" title="Voice (press-to-talk via Gemini Live)" style="display:none">voice</button>
+    <button id="btn-jarvis" title='Wake-word continuous mode — say "hey jarvis"' style="display:none">jarvis</button>
+    <span class="pill" id="pill-scene">scene <b id="scene-id">—</b></span>
+    <span class="pill" id="pill-room"  style="display:none">room <b id="room-id">—</b></span>
+  </div>
+
+  <aside id="editor" aria-label="composer">
+    <h3>add entity</h3>
+    <div class="group">
+      <button data-add="cube">cube</button>
+      <button data-add="sphere">sphere</button>
+      <button data-add="cylinder">cylinder</button>
+      <button data-add="capsule">capsule</button>
+      <button data-add="plane">plane</button>
+      <button data-add="light">light</button>
+      <button data-add="hologram">hologram</button>
+      <button data-add="emitter">emitter</button>
+    </div>
+    <h3>asset</h3>
+    <div class="group">
+      <button data-add="glb">glb URL…</button>
+      <button data-add="icosa">icosa…</button>
+      <button data-add="voxel">voxel…</button>
+    </div>
+    <h3>scene</h3>
+    <div class="group">
+      <button id="btn-save">save</button>
+      <button id="btn-load">load…</button>
+      <button id="btn-share">share</button>
+      <button id="btn-remix">remix</button>
+      <button id="btn-export">export</button>
+      <button id="btn-clear">clear</button>
+    </div>
+  </aside>
+
+  <div id="load-panel" aria-label="saved scenes">
+    <h3>saved scenes <span class="close" id="load-close" title="close">×</span></h3>
+    <div id="load-list"></div>
+  </div>
+
+  <div id="chat">
+    <input id="chat-input" type="text" placeholder="spawn a glowing cube · or paste github / url / book…" autocomplete="off" />
+    <button id="chat-send">send</button>
+  </div>
+
+  <div id="status"><div class="row" id="status-line">booting…</div></div>
+  <div id="peers"><div class="peer self" id="peer-self">you</div></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { TransformControls } from 'three/addons/controls/TransformControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { loadXRAI } from '@xrai/threejs';
+    import { newScene, entity, validate, encode, XRAI_VERSION } from '@xrai/core';
+    import './js/adapters/index.js'; // self-registers voxel + icosa + 12 others
+    import {
+      saveScene, loadScene, listScenes, deleteScene,
+      shareURL, maybeLoadFromURL, remix, fromFile, toDownload,
+    } from './js/scene/io.js';
+    import { dispatch as dispatchInput, voice as voiceInput, voicePartial, text as textInput, datasource } from './js/scene/inputs.js';
+    import * as voiceStream from './js/voice/stream.js';
+    import { on as busOn, emit as busEmit } from './js/world/bus.js';
+    import { classifyMeta } from './js/intent/meta.js';
+    import { Live } from './js/live-web.js';
+    import { PeerHolograms } from './js/holo/peer-holograms.js';
+    import { RGBDPublisher } from './js/holo/rgbd-publisher.js';
+
+    /* ─── DOM ──────────────────────────────────────────────────────────── */
+    const stage = document.getElementById('stage');
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $('status-line');
+    const toastEl = $('toast');
+    function status(msg, err) { statusEl.textContent = msg; statusEl.classList.toggle('err', !!err); }
+    function toast(msg, ms=2000) { toastEl.textContent = msg; toastEl.classList.add('show'); setTimeout(()=>toastEl.classList.remove('show'), ms); }
+
+    /* ─── URL params ───────────────────────────────────────────────────── */
+    const params = new URLSearchParams(location.search);
+    const sceneParam = params.get('scene');
+    const roomParam = params.get('room');
+    const editParam = params.has('edit') || params.get('mode') === 'edit';
+
+    /* ─── Three.js ─────────────────────────────────────────────────────── */
+    const scene3 = new THREE.Scene();
+    scene3.background = new THREE.Color(0x0a0a0a);
+    scene3.fog = new THREE.Fog(0x0a0a0a, 6, 30);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.05, 200);
+    camera.position.set(2.6, 1.8, 3.2);
+    camera.lookAt(0, 0.6, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.xr.enabled = true;
+    stage.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.target.set(0, 0.6, 0);
+
+    // Lights (always on — overridden by scene lights if present)
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x202028, 0.6);
+    const dir  = new THREE.DirectionalLight(0xffffff, 0.9);
+    dir.position.set(5, 8, 4);
+    scene3.add(hemi, dir);
+
+    // Grid (toggleable visual reference)
+    const grid = new THREE.GridHelper(20, 40, 0x222222, 0x141414);
+    grid.position.y = 0;
+    scene3.add(grid);
+
+    // Mounted XRAI doc + scene root
+    let xraiDoc = newScene({ author: 'web', origin: 'xrai-web' });
+    let xraiRoot = null;
+    let entitiesById = new Map();
+    // Gizmo state (declared up here so mountDoc's stale-selection guard can read it).
+    let gizmo = null;
+    let selectedId = null;
+
+    function mountDoc(doc) {
+      if (xraiRoot) { scene3.remove(xraiRoot); xraiRoot = null; entitiesById = new Map(); }
+      const errors = validate(doc).errors || [];
+      if (errors.length) { status('XRAI validation: ' + errors[0], true); return; }
+      const out = loadXRAI(doc, THREE, { gltfLoader: new GLTFLoader() });
+      xraiRoot = out.scene;
+      entitiesById = out.entities;
+      // Tag each Object3D with its xrai entity id for raycast → entity lookup.
+      for (const [id, obj] of entitiesById) {
+        obj.traverse(c => { c.userData = c.userData || {}; c.userData.xraiId = id; });
+      }
+      scene3.add(xraiRoot);
+      xraiDoc = doc;
+      $('scene-id').textContent = (doc.id || 'anon').slice(0, 8);
+      status(`scene · ${entitiesById.size} entities`);
+      // Drop stale gizmo selection if the picked entity vanished.
+      if (gizmo && selectedId && !entitiesById.has(selectedId)) detachGizmo();
+    }
+
+    /* ─── Transform gizmo (P4 — edit-mode pick + broadcast) ─────────────── */
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    function ensureGizmo() {
+      if (gizmo) return gizmo;
+      gizmo = new TransformControls(camera, renderer.domElement);
+      gizmo.setSize(0.8);
+      gizmo.addEventListener('dragging-changed', (e) => { controls.enabled = !e.value; });
+      gizmo.addEventListener('mouseUp', () => emitTransformDelta());
+      gizmo.addEventListener('objectChange', () => { /* live local; broadcast on mouseUp */ });
+      scene3.add(gizmo);
+      window.addEventListener('keydown', (e) => {
+        if (!gizmo.object) return;
+        if (e.key === 'w' || e.key === 'W') gizmo.setMode('translate');
+        if (e.key === 'r' || e.key === 'R') gizmo.setMode('rotate');
+        if (e.key === 's' || e.key === 'S') gizmo.setMode('scale');
+        if (e.key === 'Escape' || e.key === 'Delete') detachGizmo();
+      });
+      return gizmo;
+    }
+
+    function detachGizmo() {
+      if (gizmo) { gizmo.detach(); }
+      selectedId = null;
+    }
+
+    function emitTransformDelta() {
+      if (!selectedId || !gizmo?.object) return;
+      const o = gizmo.object;
+      const patch = {
+        transform: {
+          position: [o.position.x, o.position.y, o.position.z],
+          rotation: [o.quaternion.x, o.quaternion.y, o.quaternion.z, o.quaternion.w],
+          scale:    [o.scale.x, o.scale.y, o.scale.z],
+        },
+      };
+      // Mutate doc in place so we don't trigger full re-mount (which would drop the gizmo).
+      const ent = xraiDoc.scene.entities.find(e => e.id === selectedId);
+      if (ent) ent.transform = patch.transform;
+      if (live?.active && live?.sendData) {
+        live.sendData('xrai.delta', { kind: 'delta', ops: [{ kind: 'update', id: selectedId, patch }] });
+      }
+    }
+
+    renderer.domElement.addEventListener('pointerdown', (e) => {
+      if (!document.body.classList.contains('edit')) return;
+      if (e.button !== 0) return;
+      // Skip if click landed on the gizmo handles
+      if (gizmo?.dragging) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      if (!xraiRoot) return;
+      const hits = raycaster.intersectObject(xraiRoot, true);
+      if (!hits.length) { detachGizmo(); return; }
+      // Walk up to find the Object3D that owns an xraiId
+      let node = hits[0].object;
+      while (node && !node.userData?.xraiId) node = node.parent;
+      const id = node?.userData?.xraiId;
+      if (!id) { detachGizmo(); return; }
+      const target = entitiesById.get(id);
+      if (!target) { detachGizmo(); return; }
+      ensureGizmo().attach(target);
+      selectedId = id;
+      status(`selected · ${id} (W/R/S = move/rot/scale, Esc = clear)`);
+    });
+
+    // Seed scene
+    mountDoc(xraiDoc);
+
+    /* ─── Resize ───────────────────────────────────────────────────────── */
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onResize);
+
+    /* ─── Load scene from URL ──────────────────────────────────────────── */
+    async function loadFromUrl(src) {
+      try {
+        let url = src;
+        if (src.startsWith('firestore:')) {
+          // Stub — Cloudflare Worker should expose anon read at /api/scene/<id>
+          const id = src.slice('firestore:'.length);
+          url = `/api/scene/${encodeURIComponent(id)}`;
+        }
+        status(`loading ${url}…`);
+        const res = await fetch(url, { credentials: 'omit' });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const doc = await res.json();
+        mountDoc(doc);
+      } catch (e) {
+        status(`load failed · ${e.message}`, true);
+      }
+    }
+    if (sceneParam) loadFromUrl(sceneParam);
+
+    // Hash share URL: #scene=<b64> (inline) or #scene_id=<id> (IDB lookup)
+    (async () => {
+      try {
+        const doc = await maybeLoadFromURL();
+        if (doc) { mountDoc(doc); toast(`loaded from share link`); }
+      } catch (e) { status(`share-link load failed · ${e.message}`, true); }
+    })();
+
+    /* ─── Editor mode (P4) ─────────────────────────────────────────────── */
+    document.body.classList.toggle('edit', editParam);
+    $('btn-edit').setAttribute('aria-pressed', String(editParam));
+    $('btn-edit').addEventListener('click', () => {
+      const on = !document.body.classList.contains('edit');
+      document.body.classList.toggle('edit', on);
+      $('btn-edit').setAttribute('aria-pressed', String(on));
+      const p = new URLSearchParams(location.search);
+      if (on) p.set('edit', '1'); else p.delete('edit');
+      history.replaceState(null, '', `${location.pathname}?${p.toString()}${location.hash}`);
+    });
+
+    function applyOp(op, fromPeer) {
+      if (!op || !op.kind) return;
+      switch (op.kind) {
+        case 'add': {
+          xraiDoc.scene.entities.push(op.entity);
+          // Cheap re-mount until granular adapter API ships
+          mountDoc(xraiDoc);
+          break;
+        }
+        case 'update': {
+          const idx = xraiDoc.scene.entities.findIndex(e => e.id === op.id);
+          if (idx >= 0) {
+            xraiDoc.scene.entities[idx] = { ...xraiDoc.scene.entities[idx], ...op.patch };
+            // Granular transform patch — avoids dropping local gizmo selection.
+            const t = op.patch?.transform;
+            const obj = entitiesById.get(op.id);
+            if (t && obj) {
+              if (Array.isArray(t.position)) obj.position.set(t.position[0], t.position[1], t.position[2]);
+              if (Array.isArray(t.rotation) && t.rotation.length === 4) obj.quaternion.set(t.rotation[0], t.rotation[1], t.rotation[2], t.rotation[3]);
+              if (Array.isArray(t.scale)) obj.scale.set(t.scale[0], t.scale[1], t.scale[2]);
+            } else {
+              mountDoc(xraiDoc);
+            }
+          }
+          break;
+        }
+        case 'remove': {
+          xraiDoc.scene.entities = xraiDoc.scene.entities.filter(e => e.id !== op.id);
+          mountDoc(xraiDoc);
+          break;
+        }
+        case 'clear': {
+          xraiDoc.scene.entities = [];
+          mountDoc(xraiDoc);
+          break;
+        }
+      }
+      if (!fromPeer && live?.active && live?.sendData) {
+        live.sendData('xrai.delta', { kind: 'delta', ops: [op] });
+      }
+    }
+
+    const PRIMITIVE_MAP = {
+      cube: 'object.primitive', sphere: 'object.primitive', cylinder: 'object.primitive',
+      capsule: 'object.primitive', plane: 'object.primitive',
+      light: 'object.light', hologram: 'object.hologram', emitter: 'object.emitter',
+    };
+
+    function addEntityByKind(kind) {
+      if (kind === 'glb') {
+        const url = prompt('GLB URL?');
+        if (!url) return;
+        const id = `glb_${crypto.randomUUID().slice(0,8)}`;
+        applyOp({ kind:'add', entity: entity(id, 'object.glb', { url, transform: { position:[0,0.5,0], rotation:[0,0,0,1], scale:[1,1,1] } }) });
+        return;
+      }
+      if (kind === 'icosa') {
+        const q = prompt('Icosa search keywords?');
+        if (!q) return;
+        toast(`searching icosa: ${q}…`);
+        encode('icosa', q, { pageSize: 6, maxTriangles: 60000 }).then(d => {
+          const ents = (d.scene?.entities || []).filter(e => e.type === 'object.glb');
+          if (!ents.length) { toast('no icosa results'); return; }
+          for (const e of ents) {
+            e.transform = e.transform || { position: [Math.random()*2-1, 0.5, Math.random()*2-1], rotation: [0,0,0,1], scale: [0.5,0.5,0.5] };
+            // Map XRAI object.glb (params.src) → existing loader (uses entity.url)
+            e.url = e.url || e.params?.src;
+            applyOp({ kind: 'add', entity: e });
+          }
+          toast(`icosa · added ${ents.length}`);
+        }).catch(err => toast(`icosa failed · ${err.message}`));
+        return;
+      }
+      if (kind === 'voxel') {
+        const seed = prompt('Voxel plan JSON or "demo"?', 'demo');
+        if (!seed) return;
+        let plan;
+        if (seed === 'demo') {
+          const cats = ['Trees','Plants','Flowers','Wildgrass','Boulders'];
+          plan = Array.from({length: 30}, () => ({
+            category: cats[Math.floor(Math.random()*cats.length)],
+            type: Math.floor(Math.random()*4),
+            x: Math.round((Math.random()*40-20)),
+            y: 0,
+            z: Math.round((Math.random()*40-20)),
+            rotation: Math.floor(Math.random()*360),
+          }));
+        } else {
+          try { plan = JSON.parse(seed); } catch (e) { toast(`bad JSON · ${e.message}`); return; }
+        }
+        encode('voxel', { kind: 'voxel-gen-v1', plan }).then(d => {
+          const ents = (d.scene?.entities || []).filter(e => e.id !== 'vox_root');
+          for (const e of ents) applyOp({ kind: 'add', entity: e });
+          toast(`voxel · added ${ents.length}`);
+        }).catch(err => toast(`voxel failed · ${err.message}`));
+        return;
+      }
+      const type = PRIMITIVE_MAP[kind];
+      if (!type) return;
+      const id = `${kind}_${crypto.randomUUID().slice(0,8)}`;
+      const ent = entity(id, type, {
+        model_id: kind,
+        material: { color: '#f7ffa8' },
+        transform: {
+          position: [Math.random()*2-1, 0.5, Math.random()*2-1],
+          rotation: [0,0,0,1],
+          scale: [0.4,0.4,0.4]
+        }
+      });
+      applyOp({ kind: 'add', entity: ent });
+    }
+
+    document.querySelectorAll('#editor button[data-add]').forEach(b => {
+      b.addEventListener('click', () => addEntityByKind(b.dataset.add));
+    });
+
+    $('btn-clear').addEventListener('click', () => {
+      if (!confirm('clear all entities?')) return;
+      applyOp({ kind:'clear' });
+    });
+
+    $('btn-export').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(xraiDoc, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `${xraiDoc.id || 'scene'}.xrai.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 500);
+    });
+
+    $('btn-save').addEventListener('click', async () => {
+      try {
+        const title = prompt('scene title?', xraiDoc.metadata?.title || 'untitled') || 'untitled';
+        const { id } = await saveScene(xraiDoc, { title });
+        $('scene-id').textContent = id.slice(0, 8);
+        history.replaceState(null, '', `${location.pathname}${location.search}#scene_id=${id}`);
+        toast(`saved · ${title}`);
+      } catch (e) {
+        toast(`save failed · ${e.message} — exporting`);
+        $('btn-export').click();
+      }
+    });
+
+    $('btn-share').addEventListener('click', async () => {
+      const url = shareURL(xraiDoc);
+      try {
+        if (navigator.share) await navigator.share({ title: xraiDoc.metadata?.title || 'xrai scene', url });
+        else { await navigator.clipboard.writeText(url); toast('share URL copied'); }
+      } catch {}
+    });
+
+    $('btn-remix').addEventListener('click', () => {
+      const fresh = remix(xraiDoc);
+      mountDoc(fresh);
+      toast(`remixed · ${fresh.metadata.title}`);
+    });
+
+    async function refreshLoadList() {
+      const list = $('load-list');
+      list.innerHTML = '';
+      const rows = await listScenes({ limit: 100 });
+      if (!rows.length) { list.innerHTML = '<div class="empty">no saved scenes yet</div>'; return; }
+      for (const r of rows) {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<span class="title" title="${r.id}">${r.title}</span><span class="meta">${r.entities}e</span><span class="del" data-id="${r.id}" title="delete">×</span>`;
+        row.querySelector('.title').addEventListener('click', async () => {
+          const doc = await loadScene(r.id);
+          if (doc) { mountDoc(doc); toast(`loaded · ${r.title}`); $('load-panel').classList.remove('show'); }
+          else toast('load failed');
+        });
+        row.querySelector('.del').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm(`delete "${r.title}"?`)) return;
+          await deleteScene(r.id);
+          refreshLoadList();
+        });
+        list.appendChild(row);
+      }
+    }
+    $('btn-load').addEventListener('click', () => {
+      $('load-panel').classList.toggle('show');
+      if ($('load-panel').classList.contains('show')) refreshLoadList();
+    });
+    $('load-close').addEventListener('click', () => $('load-panel').classList.remove('show'));
+
+    /* ─── LiveKit (P2) — telepresence ──────────────────────────────────── */
+    const live = new Live({ showToast: toast });
+    const peers = new PeerHolograms({ scene: scene3, THREE, layout: 'horizontal' });
+    const rgbdPub = new RGBDPublisher({ live, showToast: toast });
+    if (roomParam) {
+      $('room-id').textContent = roomParam;
+      $('pill-room').style.display = '';
+    }
+    $('btn-live').addEventListener('click', async () => {
+      const isOn = $('btn-live').getAttribute('aria-pressed') === 'true';
+      if (isOn) {
+        if (live.disable) await live.disable();
+        $('btn-live').setAttribute('aria-pressed', 'false');
+      } else {
+        await live.enable({ publishCamera: false });
+        $('btn-live').setAttribute('aria-pressed', 'true');
+        $('room-id').textContent = live.roomId || '—';
+        $('pill-room').style.display = '';
+      }
+    });
+    $('btn-holo').addEventListener('click', async () => {
+      const on = $('btn-holo').getAttribute('aria-pressed') === 'true';
+      if (on) {
+        await rgbdPub.stop();
+        $('btn-holo').setAttribute('aria-pressed', 'false');
+      } else {
+        const ok = await rgbdPub.start({ frameW: 256, frameH: 192, fps: 24 });
+        $('btn-holo').setAttribute('aria-pressed', String(!!ok));
+      }
+    });
+    // DataChannel routing (live-web.js emits document events).
+    document.addEventListener('live:data', (e) => {
+      const { msg, participant } = e.detail || {};
+      if (!msg) return;
+      if (msg.kind === 'delta' && Array.isArray(msg.ops)) {
+        const peerId = participant?.identity || 'peer';
+        for (const op of msg.ops) applyOp(op, peerId);
+        return;
+      }
+      // pose / rgbd-meta / face / hands → peer hologram manager
+      peers.onData({ msg, participant });
+    });
+    document.addEventListener('live:track', (e) => peers.onTrack(e.detail || {}));
+    document.addEventListener('live:track-end', (e) => peers.onTrackEnd(e.detail || {}));
+
+    /* ─── WebXR (Vision Pro / Quest) ───────────────────────────────────── */
+    async function detectXR() {
+      if (!navigator.xr) return null;
+      const ar = await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+      const vr = await navigator.xr.isSessionSupported('immersive-vr').catch(()=>false);
+      if (ar) return 'immersive-ar';
+      if (vr) return 'immersive-vr';
+      return null;
+    }
+    let xrMode = null;
+    (async () => {
+      xrMode = await detectXR();
+      if (!xrMode) return;
+      const btn = $('btn-xr');
+      btn.style.display = '';
+      btn.textContent = xrMode === 'immersive-ar' ? 'enter AR' : 'enter VR';
+      btn.addEventListener('click', async () => {
+        try {
+          const sessionInit = xrMode === 'immersive-ar'
+            ? { requiredFeatures: ['local-floor'], optionalFeatures: ['hit-test','dom-overlay','hand-tracking'], domOverlay: { root: document.body } }
+            : { optionalFeatures: ['local-floor','hand-tracking'] };
+          const session = await navigator.xr.requestSession(xrMode, sessionInit);
+          await renderer.xr.setSession(session);
+          toast(`XR session · ${xrMode}`);
+        } catch (e) {
+          toast(`XR failed · ${e.message}`);
+        }
+      });
+    })();
+
+    /* ─── Voice + Text input (P4) ──────────────────────────────────────── */
+    // Merge a returned XRAI doc's entities into current scene via applyOp.
+    function ingestDoc(doc) {
+      if (!doc?.scene?.entities?.length) { toast('nothing to spawn'); return; }
+      const filtered = doc.scene.entities.filter(e => !/^(_root|vox_root|graph_root)/.test(e.id || ''));
+      for (const e of filtered) applyOp({ kind: 'add', entity: e });
+      toast(`spawned · ${filtered.length} from ${doc.metadata?.source || 'input'}`);
+    }
+
+    async function handleUserPrompt(prompt) {
+      if (!prompt?.trim()) return;
+      // Scene-verb short-circuit: save/load/share/remix/list/delete/download
+      // route to intent:meta (single dispatch handler) instead of spawn pipeline.
+      const meta = classifyMeta(prompt);
+      if (meta) { busEmit('intent:meta', { meta, sceneId: null }); return; }
+      status(`thinking · ${prompt.slice(0, 60)}…`);
+      try {
+        // datasource sniffing: URL → dataviz router
+        let res;
+        if (/^https?:\/\/(www\.)?github\.com\//i.test(prompt)) res = await datasource('github', prompt);
+        else if (/^https?:\/\//i.test(prompt)) res = await datasource('webpage', prompt);
+        else res = await textInput(prompt);
+        ingestDoc(res.doc);
+        status(`scene · ${entitiesById.size} entities`);
+      } catch (e) {
+        status(`input failed · ${e.message}`, true);
+        toast(`failed · ${e.message}`);
+      }
+    }
+
+    // Chat input
+    const chatInput = $('chat-input');
+    const chatSend = $('chat-send');
+    async function sendChat() {
+      const v = chatInput.value.trim();
+      if (!v) return;
+      chatInput.value = '';
+      chatSend.disabled = true;
+      try { await handleUserPrompt(v); } finally { chatSend.disabled = false; chatInput.focus(); }
+    }
+    chatSend.addEventListener('click', sendChat);
+    chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+
+    // Voice toggle wires Web Speech API → scene/inputs dispatch
+    $('btn-voice').addEventListener('click', () => {
+      if (voiceStream.isRunning()) { voiceStream.stop(); $('btn-voice').setAttribute('aria-pressed', 'false'); status('voice off'); return; }
+      if (!voiceStream.isSupported()) { toast('voice unsupported in this browser'); return; }
+      const ok = voiceStream.start();
+      if (ok) { $('btn-voice').setAttribute('aria-pressed', 'true'); status('voice on · speak'); }
+    });
+    if (voiceStream.isSupported()) $('btn-voice').style.display = '';
+
+    // jARvis wake-word continuous mode — ALWAYS-LISTENING per Spec 008 Ambient
+    // doctrine + constitution §"Doing Without Doing" intent-sensing. Distinct
+    // from btn-voice (press-to-talk Gemini Live). Auto-starts on page load if
+    // Web Speech API + mic permission available. Button toggles off/on for
+    // user privacy override (localStorage `viewer.jarvis.optout`).
+    //
+    // Routes resolved queries through the same chat-input pipeline so meta
+    // verbs (save/load/share/remix/delete/download — smoke-intent-meta 42
+    // tests) + scene compose work identically.
+    //
+    // Reference: AI Studio prototype jarvis-xrai-cosmos-v2 (visual+functional
+    // ref per Spec 028 Appendix B G3). Wake-phrase variants: 9 fuzzy matches
+    // ("hey jarvis", "hey jarvas", "hi jarvis", …) from jarvis-web.js:21.
+    //
+    // Doctrine cite:
+    //   docs/voice/JARVIS_BRIDGE_CONTRACT.md
+    //   ~/.claude/knowledgebase/_JARVIS_WAKE_WORD_BRIDGE_PATTERN.md
+    //   specs/008-voice-intelligence-live/spec.md §"Doctrine gate"
+    let jarvis = null;
+    const JARVIS_OPTOUT_KEY = 'viewer.jarvis.optout';
+    async function bootJarvis() {
+      if (jarvis) return jarvis;
+      try {
+        const mod = await import('./js/jarvis-web.js');
+        jarvis = new mod.Jarvis({
+          resolveQuery: async (q) => { chatInput.value = q; await sendChat(); return null; },
+          showToast: (m) => toast(m, 2400),
+          openNode: () => {},               // no website-node nav in viewer
+          Graph: null, nodes: [],            // no content-index target
+          onHudShow: () => {},               // viewer has own HUD
+        });
+        return jarvis;
+      } catch (e) { toast(`jarvis load failed · ${e.message}`); return null; }
+    }
+    async function toggleJarvis(force) {
+      const target = force ?? !(jarvis?.active);
+      if (target && !jarvis) await bootJarvis();
+      if (!jarvis) return;
+      try { jarvis.toggle?.(); } catch (e) { toast(`jarvis · ${e.message}`); return; }
+      $('btn-jarvis').setAttribute('aria-pressed', String(!!jarvis.active));
+      status(jarvis.active ? 'jarvis on · say "hey jarvis"' : 'jarvis off');
+    }
+    $('btn-jarvis').addEventListener('click', async () => {
+      const willEnable = !(jarvis?.active);
+      localStorage.setItem(JARVIS_OPTOUT_KEY, willEnable ? '0' : '1');
+      await toggleJarvis(willEnable);
+    });
+    if (voiceStream.isSupported()) {
+      $('btn-jarvis').style.display = '';
+      // Always-listening auto-start unless user opted out previously.
+      // Chrome blocks getUserMedia without user-gesture; auto-start may fail
+      // silently on first visit. Falls back to button click w/ permission prompt.
+      if (localStorage.getItem(JARVIS_OPTOUT_KEY) !== '1') {
+        setTimeout(async () => {
+          try {
+            await toggleJarvis(true);
+            if (!jarvis?.active) status('jarvis · click button to grant mic permission');
+          } catch { status('jarvis · click button to enable'); }
+        }, 800);
+      } else {
+        status('jarvis · click button to enable (opt-out persisted)');
+      }
+    }
+
+    // Bus subscriptions: speculative + final
+    busOn('intent:speculative', ({ transcript }) => status(`hearing · ${transcript}`));
+    busOn('voice:error', ({ error, message }) => toast(`voice · ${error}`));
+    // Voice final transcript: pipe through text input path.
+    // voiceStream emits intent:final with isFinal=true; dispatch() re-emits
+    // post-encode without isFinal — we only handle the upstream voice signal.
+    busOn('intent:final', async ({ transcript, isFinal }) => {
+      if (!transcript || !isFinal) return;
+      chatInput.value = transcript;
+      // Meta verbs already dispatched by speculative pipeline → skip spawn path.
+      if (classifyMeta(transcript)) return;
+      await handleUserPrompt(transcript);
+    });
+
+    // Scene meta-verb dispatch (save / load / share / remix / list / delete / download).
+    // Single handler for both voice (speculative pipeline) and chat (handleUserPrompt).
+    busOn('intent:meta', async ({ meta }) => {
+      if (!meta) return;
+      try {
+        switch (meta.action) {
+          case 'save': {
+            const rec = await saveScene(xraiDoc, { title: meta.title });
+            toast(`saved · ${meta.title || rec.id?.slice(0, 8) || 'scene'}`);
+            status(`saved · ${rec.id || ''}`);
+            return;
+          }
+          case 'load': {
+            const all = await listScenes({ limit: 200 });
+            if (!meta.query) {
+              if (!all.length) { toast('no saved scenes'); return; }
+              toast(`pick · ${all.slice(0, 3).map(s => s.title).join(', ')}…`);
+              return;
+            }
+            const q = meta.query.toLowerCase();
+            const match = all.find(s => (s.title || '').toLowerCase() === q)
+                       || all.find(s => (s.title || '').toLowerCase().includes(q));
+            if (!match) { toast(`not found · ${meta.query}`); return; }
+            const doc = await loadScene(match.id);
+            if (!doc) { toast('load failed'); return; }
+            mountDoc(doc);
+            toast(`loaded · ${match.title}`);
+            return;
+          }
+          case 'list': {
+            const all = await listScenes({ limit: 50 });
+            if (!all.length) { toast('no saved scenes'); return; }
+            toast(`${all.length} scenes · ${all.slice(0, 3).map(s => s.title).join(', ')}…`, 3000);
+            return;
+          }
+          case 'share': {
+            const url = shareURL(xraiDoc);
+            try { await navigator.clipboard.writeText(url); toast('share URL copied'); }
+            catch { toast(`share · ${url}`, 4000); }
+            return;
+          }
+          case 'remix': {
+            const next = remix(xraiDoc, { title: meta.title });
+            mountDoc(next);
+            toast(`remixed · ${meta.title || 'copy'}`);
+            return;
+          }
+          case 'delete': {
+            if (!meta.query) { toast('delete · which scene?'); return; }
+            const all = await listScenes({ limit: 200 });
+            const q = meta.query.toLowerCase();
+            const match = all.find(s => (s.title || '').toLowerCase() === q)
+                       || all.find(s => (s.title || '').toLowerCase().includes(q));
+            if (!match) { toast(`not found · ${meta.query}`); return; }
+            await deleteScene(match.id);
+            toast(`deleted · ${match.title}`);
+            return;
+          }
+          case 'download': {
+            const filename = toDownload(xraiDoc);
+            toast(`downloaded · ${filename}`);
+            return;
+          }
+        }
+      } catch (e) {
+        toast(`meta failed · ${e.message}`);
+        status(`meta failed · ${e.message}`, true);
+      }
+    });
+
+    /* ─── Keyboard shortcuts ──────────────────────────────────────────── */
+    window.addEventListener('keydown', (e) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'e' || e.key === 'E') $('btn-edit').click();
+      if (e.key === 'l' || e.key === 'L') $('btn-live').click();
+      if (e.key === 'g' || e.key === 'G') grid.visible = !grid.visible;
+    });
+
+    /* ─── Render loop ─────────────────────────────────────────────────── */
+    renderer.setAnimationLoop(() => {
+      controls.update();
+      peers.tick();
+      renderer.render(scene3, camera);
+    });
+
+    status('ready');
+
+    /* ─── Diagnostics (dev) ───────────────────────────────────────────── */
+    window.__xrai = { THREE, scene3, camera, renderer, mountDoc, applyOp, get doc(){return xraiDoc;}, live, peers };
+  </script>
+</body>
+</html>
