@@ -73,17 +73,37 @@ export class Live {
     }
   }
 
-  // Try to fetch a token from a same-origin endpoint (Cloudflare Worker etc).
-  // Falls back to null → triggers paste-your-own modal.
+  // Fetch a token. Order: token endpoint (window.LK_TOKEN_URL cross-origin
+  // Worker, else same-origin /api/livekit-token) → LiveKit Cloud sandbox token
+  // server (zero-deploy demo; set <meta name="lk-sandbox"> or ?lk_sandbox=) →
+  // null (triggers paste-your-own modal). Returns { token, serverUrl } | null.
   async _fetchToken(roomId, identity) {
+    const base = (typeof window !== 'undefined' && window.LK_TOKEN_URL) || '/api/livekit-token';
     try {
-      const res = await fetch(`/api/livekit-token?room=${encodeURIComponent(roomId)}&identity=${encodeURIComponent(identity)}`);
-      if (!res.ok) return null;
-      const data = await res.json();
-      return data.token || null;
-    } catch {
-      return null;
+      const sep = base.includes('?') ? '&' : '?';
+      const res = await fetch(`${base}${sep}room=${encodeURIComponent(roomId)}&identity=${encodeURIComponent(identity)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) return { token: data.token, serverUrl: data.serverUrl || null };
+      }
+    } catch {}
+    const sandboxId = (typeof document !== 'undefined' && document.querySelector('meta[name="lk-sandbox"]')?.content)
+      || (typeof location !== 'undefined' && new URLSearchParams(location.search).get('lk_sandbox'))
+      || (typeof window !== 'undefined' && window.LK_SANDBOX_ID) || null;
+    if (sandboxId && sandboxId !== 'REPLACE_WITH_SANDBOX_ID') {
+      try {
+        const res = await fetch('https://cloud-api.livekit.io/api/sandbox/connection-details', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Sandbox-ID': sandboxId },
+          body: JSON.stringify({ roomName: roomId, participantName: identity }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.participantToken) return { token: data.participantToken, serverUrl: data.serverUrl || null };
+        }
+      } catch {}
     }
+    return null;
   }
 
   // ─── Invite: auto-create room + copy URL ──────────────────────────────────
@@ -119,8 +139,9 @@ export class Live {
     const identity = `viewer-${uuid().slice(0, 8)}`;
 
     // Token
-    let token = await this._fetchToken(this.roomId, identity);
-    let serverUrl = DEFAULT_LK_URL;
+    const fetched = await this._fetchToken(this.roomId, identity);
+    let token = fetched?.token || null;
+    let serverUrl = fetched?.serverUrl || DEFAULT_LK_URL;
     if (!token) {
       const params = await this._promptForTokenAndUrl(serverUrl);
       if (!params) return false;
