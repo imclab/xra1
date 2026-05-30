@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>xrai · gsplat viewer test (WEB-05)</title>
+  <!-- Static-deploy friendly: CDN importmap, no bundler (matches viewer.html).
+       three pinned to 0.160.0 to match the gaussian-splats-3d peer range. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+      "@mkkellogg/gaussian-splats-3d": "https://esm.sh/@mkkellogg/gaussian-splats-3d@0.4.7?deps=three@0.160.0",
+      "@xrai/gsplat": "./js/gsplat-web.js"
+    }
+  }
+  </script>
+  <style>
+    html,body{margin:0;height:100%;background:#0a0a0a;color:#f7ffa8;font:12px ui-monospace,monospace;overflow:hidden}
+    #stage{position:fixed;inset:0}
+    #hud{position:fixed;top:10px;left:10px;z-index:10;display:flex;gap:6px;flex-wrap:wrap}
+    #hud button{background:#141414;color:#ddd;border:1px solid #333;border-radius:3px;padding:6px 10px;cursor:pointer;font:inherit}
+    #hud button:hover{border-color:#777;color:#fff}
+    #status{position:fixed;bottom:10px;left:10px;z-index:10;background:#141414cc;padding:5px 10px;border:1px solid #333;border-radius:3px;max-width:80vw}
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="hud">
+    <button data-tier="0">Full (SH2)</button>
+    <button data-tier="1">Reduced (SH1)</button>
+    <button data-tier="2">Low (SH0)</button>
+    <button data-tier="3">Emergency</button>
+  </div>
+  <div id="status">booting…</div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { mountGsplat, setLodTier } from '@xrai/gsplat';
+
+    const stage = document.getElementById('stage');
+    const statusEl = document.getElementById('status');
+    const setStatus = (m) => { statusEl.textContent = m; console.log('[gsplat-test]', m); };
+
+    // ?url=<splat .ply/.ksplat/.splat>  (CDP test passes a local small asset)
+    const url = new URLSearchParams(location.search).get('url');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+    const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.05, 500);
+    camera.position.set(0, 0.5, -4);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight);
+    stage.appendChild(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // Diagnostics the CDP smoke polls.
+    window.__gsplat = { ready: false, error: null, splatGroup: null, libLoaded: false };
+
+    const host = new THREE.Group();
+    scene.add(host);
+
+    renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
+
+    (async () => {
+      try {
+        window.__gsplat.libLoaded = true; // import resolved → CDN + lib OK
+        if (!url) { setStatus('lib loaded ✓ — pass ?url=<splat> to render a scene'); window.__gsplat.ready = true; return; }
+        setStatus(`loading splat · ${url}`);
+        const viewer = await mountGsplat(host, url, THREE, { tier: 0 });
+        window.__gsplat.splatGroup = host;
+        window.__gsplat.ready = !!viewer;
+        // frame the splat
+        const box = new THREE.Box3().setFromObject(host);
+        if (!box.isEmpty()) {
+          const c = box.getCenter(new THREE.Vector3());
+          const r = box.getSize(new THREE.Vector3()).length() * 0.6 || 4;
+          camera.position.set(c.x, c.y + r*0.2, c.z - r);
+          controls.target.copy(c); camera.lookAt(c);
+        }
+        setStatus(`splat rendered ✓ · ${url}`);
+      } catch (e) {
+        window.__gsplat.error = String(e);
+        setStatus(`FAILED · ${e}`);
+      }
+    })();
+
+    document.querySelectorAll('#hud button').forEach(b =>
+      b.addEventListener('click', async () => {
+        const t = +b.dataset.tier;
+        setStatus(`set LOD tier ${t}…`);
+        await setLodTier(host, t);
+        setStatus(`LOD tier ${t} applied`);
+      }));
+  </script>
+</body>
+</html>

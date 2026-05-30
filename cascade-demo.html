@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<!-- cascade-demo.html — First working VOICE → PROCEDURAL GENERATION demo (web viewer).
+     Uses the SAME core modules as production iOS app + web demos:
+       js/intent/local.js   (real archetype classifier — archetypes.json)
+       js/procgen/cascade.js (CascadeScheduler — spec 036; shared web+RN+Unity logic)
+       runtimes/threejs/src/index.js  loadXRAI()  (the ONE canonical XRAI renderer)
+     Voice (Web Speech API) or text → buildCascade → XRAI graph → tiers stream into the
+     three.js scene lightest-first / rising-wow = the "world builds itself live" feel.
+     Same XRAI doc decodes in Unity via ProcGenBridgeHandler (thin decoder). -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>XRAI · Voice → Procgen Cascade Demo</title>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+    "@xrai/threejs": "./runtimes/threejs/src/index.js",
+    "@xrai/core": "./js/xrai-core.js"
+  }
+}
+</script>
+<style>
+  :root { color-scheme: dark; --accent:#f7ffa8; --bg:#070710; --fg:#fff; --mute:#9aa; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 ui-sans-serif,system-ui,sans-serif; overflow:hidden; }
+  #stage { position:fixed; inset:0; }
+  #hud { position:fixed; top:0; left:0; right:0; padding:14px; display:flex; gap:8px; align-items:center;
+         background:linear-gradient(#000a,#0000); z-index:10; flex-wrap:wrap; }
+  #prompt { flex:1; min-width:220px; padding:10px 12px; border-radius:10px; border:1px solid #333;
+            background:#0d0d18; color:#fff; font-size:15px; }
+  button { padding:10px 14px; border-radius:10px; border:1px solid #444; background:#15152a; color:#fff; cursor:pointer; }
+  button:hover { border-color:var(--accent); }
+  #mic.live { background:#a33; border-color:#f55; }
+  #log { position:fixed; bottom:0; left:0; right:0; max-height:34vh; overflow:auto; padding:10px 14px;
+         background:#000a; font:12px/1.5 ui-monospace,monospace; color:var(--mute); z-index:10; }
+  .t0{color:#8fd} .t1{color:#fd8} .t2{color:#8af} .t3{color:#f7ffa8;font-weight:600}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  .chip{padding:2px 8px;border-radius:999px;background:#1a1a30;font-size:11px}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="hud">
+  <input id="prompt" placeholder='Say or type a world…  e.g. "spooky campfire night with a cosmic galaxy"' value="spooky campfire night with a cosmic galaxy" />
+  <button id="mic" title="Voice (Web Speech API)">🎤 Voice</button>
+  <button id="build">▶ Build</button>
+  <button id="save" title="Download .xrai">⤓ XRAI</button>
+</div>
+<div id="log"></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { loadXRAI } from '@xrai/threejs';
+import { loadArchetypes, classifySync } from './js/intent/local.js';
+import { buildCascade, TIERS } from './js/procgen/cascade.js';
+
+// --- three.js stage (mirrors viewer.html) ---
+const stage = document.getElementById('stage');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070710);
+scene.fog = new THREE.Fog(0x070710, 8, 40);
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.05, 200);
+camera.position.set(3.2, 2.2, 4.2); camera.lookAt(0, 0.8, -1.5);
+const renderer = new THREE.WebGLRenderer({ antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace; stage.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement); controls.target.set(0,0.8,-1.5); controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff, 0x202028, 0.8));
+const dir = new THREE.DirectionalLight(0xffffff, 0.9); dir.position.set(3,6,2); scene.add(dir);
+const grid = new THREE.GridHelper(20, 40, 0x222244, 0x141428); grid.position.y = -0.49; scene.add(grid);
+
+const animated = [];                 // {obj, t0, born} for grow-in
+function tween(obj){ obj.scale.set(0.01,0.01,0.01); animated.push({ obj, born: performance.now() }); }
+(function loop(){
+  requestAnimationFrame(loop);
+  const now = performance.now();
+  for (const a of animated){ const k = Math.min(1,(now-a.born)/350); a.obj.scale.setScalar(k<1?k*a.obj.userData._s||k:1); }
+  for (const m of scene.children) if (m.userData?._spin) m.rotation.y += 0.01;
+  controls.update(); renderer.render(scene, camera);
+})();
+addEventListener('resize', () => { camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); });
+
+// --- log ---
+const logEl = document.getElementById('log');
+const log = (html, cls='') => { const d=document.createElement('div'); if(cls)d.className=cls; d.innerHTML=html; logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight; };
+
+// VFX/hero types loadXRAI doesn't render on web → lightweight glow placeholder so you SEE them.
+const EFFECT_COLOR = { fire:0xff6611, smoke:0x888888, mist:0xbfd6e6, fireflies:0xffe066, sparkle:0xfff0aa,
+  leaves:0x55aa44, water:0x2266dd, lightning:0x66ddff, glow:0xffffff, dust:0xccaa88 };
+function placeholder(ent){
+  const p = ent.params || {}; const pos = ent.transform?.position || [0,0,0]; const scl = ent.transform?.scale || [1,1,1];
+  const col = EFFECT_COLOR[p.effect] ?? 0xf7ffa8;
+  let obj;
+  if (ent.type === 'object.particles' || ent.type === 'object.emitter'){
+    const n = Math.min(800, (p.spawnRate||32)*8); const g = new THREE.BufferGeometry();
+    const arr = new Float32Array(n*3);
+    for (let i=0;i<n;i++){ arr[i*3]=(Math.sin(i*12.9898)*43758.5)%1*scl[0]-scl[0]/2; arr[i*3+1]=((Math.sin(i*78.233)*43758.5)%1)*scl[1]; arr[i*3+2]=((Math.sin(i*37.719)*43758.5)%1)*scl[2]-scl[2]/2; }
+    g.setAttribute('position', new THREE.BufferAttribute(arr,3));
+    obj = new THREE.Points(g, new THREE.PointsMaterial({ color:col, size:0.04, transparent:true, opacity:0.9, blending:THREE.AdditiveBlending }));
+  } else if (ent.type === 'object.voxel'){
+    obj = new THREE.Mesh(new THREE.BoxGeometry(scl[0],scl[1],scl[2]), new THREE.MeshStandardMaterial({ color:col, wireframe:true }));
+  } else if (ent.type === 'object.shader'){
+    obj = new THREE.Mesh(new THREE.SphereGeometry(Math.max(...scl)*0.6,24,16), new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.4 }));
+    obj.userData._spin = true;
+  } else return null;
+  obj.position.set(pos[0],pos[1],pos[2]); obj.userData._s = Math.max(...scl); return obj;
+}
+
+// --- the cascade: build XRAI graph, stream tiers into the scene lightest-first ---
+let lastDoc = null;
+async function build(prompt){
+  // clear previous world
+  for (let i=scene.children.length-1;i>=0;i--){ const c=scene.children[i]; if (c.userData?.xrai||c.userData?._cascade) scene.remove(c); }
+  animated.length = 0;
+  logEl.innerHTML = '';
+  log(`🗣️  "<b>${prompt}</b>"`);
+  const hit = classifySync(prompt);
+  log(`intent → archetype <b>${hit?.archetype?.match?.[0] ?? '—'}</b> (vfx:${hit?.archetype?.vfx ?? '—'}, conf ${hit?.confidence ?? 0})`);
+
+  const { doc, batches, deferred } = buildCascade(prompt, { classify: classifySync }, { seed: 42 });
+  lastDoc = doc;
+  log(`cascade → ${doc.scene.entities.length} entities · ${doc.scene.relations.length} relations · ${batches.length} tiers${deferred.length?` · ${deferred.length} deferred (memory)`:''}`);
+
+  // stream tier-by-tier with a delay = the "live building" feel
+  for (let bi=0; bi<batches.length; bi++){
+    const b = batches[bi];
+    await new Promise(r => setTimeout(r, bi===0?120:600));
+    const mini = { xrai_version:'1.0', id:`${doc.id}_t${b.tier}`, scene:{ anchors:[], entities:b.entities, relations:b.relations, events:[] } };
+    const out = loadXRAI(mini, THREE, {});
+    out.scene.userData._cascade = true; scene.add(out.scene);
+    for (const o of out.scene.children) tween(o);
+    // add glow placeholders for VFX/hero (not rendered by loadXRAI on web)
+    for (const ent of b.entities){ const ph = placeholder(ent); if (ph){ ph.userData._cascade=true; scene.add(ph); tween(ph); } }
+    const names = b.entities.filter(e=>e.type!=='object.group').map(e=>e.params?.effect||e.params?.label||e.id);
+    log(`<span class="t${b.tier}">▸ T${b.tier} ${b.tierName}</span> <span class="chips">${names.map(n=>`<span class="chip">${n}</span>`).join('')}</span>`, '');
+  }
+  const relTypes = [...new Set(doc.scene.relations.map(r=>r.type))];
+  log(`✅ world built · relations: <b>${relTypes.join(', ')}</b> · save/share as one .xrai`);
+}
+
+// --- voice (Web Speech API) + text ---
+const promptEl = document.getElementById('prompt');
+document.getElementById('build').onclick = () => build(promptEl.value.trim());
+document.getElementById('save').onclick = () => { if(!lastDoc) return;
+  const blob = new Blob([JSON.stringify(lastDoc,null,2)], {type:'application/vnd.xrai+json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cascade-world.xrai'; a.click(); };
+const micBtn = document.getElementById('mic');
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SR){ const rec = new SR(); rec.lang='en-US'; rec.interimResults=false;
+  micBtn.onclick = () => { try{ rec.start(); micBtn.classList.add('live'); micBtn.textContent='🎤 …'; }catch{} };
+  rec.onresult = e => { const t=e.results[0][0].transcript; promptEl.value=t; build(t); };
+  rec.onend = () => { micBtn.classList.remove('live'); micBtn.textContent='🎤 Voice'; };
+} else { micBtn.textContent='🎤 (type)'; micBtn.disabled=true; }
+
+// boot: load the real archetypes, then build the default prompt
+log('loading archetypes.json (51-word vocabulary)…');
+await loadArchetypes();
+log(`ready · ${TIERS.length}-tier cascade · core modules: intent/local.js + procgen/cascade.js + @xrai/threejs`);
+build(promptEl.value.trim());
+</script>
+</body>
+</html>

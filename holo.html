@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>xrai · holo — Metavido RGBD hologram playback</title>
+<meta name="description" content="WebGL point-cloud playback of Metavido / RGBD side-by-side depth video. Drop a capture or watch the synthetic test pattern." />
+<style>
+  :root { --bg:#000; --fg:#f4f6f8; --accent:#36e0ff; --mute:#9aa0a6; --mono:'JetBrains Mono',ui-monospace,monospace; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--fg); font-family:var(--mono); overflow:hidden; }
+  #stage { position:fixed; inset:0; }
+  canvas { display:block; }
+  .hud { position:fixed; z-index:5; }
+  #title { top:18px; left:20px; font-weight:700; letter-spacing:.04em; font-size:14px; }
+  #title b { color:var(--accent); }
+  #title small { display:block; color:var(--mute); font-weight:400; font-size:11px; margin-top:3px; letter-spacing:.02em; }
+  #panel { bottom:18px; left:20px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .btn, .seg, label.file { background:rgba(10,12,14,.78); border:1px solid rgba(255,255,255,.14); color:var(--fg);
+    border-radius:3px; padding:7px 12px; font:inherit; font-size:12px; cursor:pointer; user-select:none; }
+  .btn[aria-pressed="true"], .seg.on { border-color:var(--accent); color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+  .btn:hover, label.file:hover { border-color:rgba(255,255,255,.4); }
+  #status { bottom:18px; right:20px; color:var(--mute); font-size:11px; text-align:right; max-width:46vw; }
+  #status b { color:var(--accent); }
+  #drop { position:fixed; inset:0; z-index:8; display:none; align-items:center; justify-content:center;
+    background:rgba(54,224,255,.08); border:2px dashed var(--accent); font-size:18px; font-weight:700; color:var(--accent); }
+  #drop.show { display:flex; }
+  input[type=file]{ display:none; }
+  input[type=range]{ accent-color:var(--accent); }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="stage"></div>
+
+<div class="hud" id="title">xrai · <b>holo</b><small id="sub">Metavido RGBD → point-cloud · synthetic test pattern</small></div>
+
+<div class="hud" id="panel">
+  <label class="file">open video<input id="file" type="file" accept="video/*" /></label>
+  <button class="btn" id="btn-synth" aria-pressed="true" title="Procedural RGBD test pattern (no asset)">test pattern</button>
+  <div class="seg" id="seg-layout" title="Side-by-side layout of the source video">layout: <b id="layout-v">metavido</b></div>
+  <button class="btn" id="btn-pause" title="Pause/resume playback">⏸ pause</button>
+  <label class="file" title="Point size">size <input type="range" id="size" min="1" max="12" value="4" style="width:80px;vertical-align:middle" /></label>
+</div>
+
+<div class="hud" id="status">drag a <b>Metavido / RGBD</b> .mp4 anywhere · or watch the test pattern</div>
+<div id="drop">drop Metavido RGBD video</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RGBDPointCloud } from './js/holo/rgbd-cloud.js';
+
+// ── scene ────────────────────────────────────────────────────────────────────
+const stage = document.getElementById('stage');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.01, 100);
+camera.position.set(0, 0, -1.6); // Metavido reconstructs +Z forward; look back at it
+const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+stage.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.target.set(0, 0, 1.2);
+
+const W = 256, H = 192;
+const cloud = new RGBDPointCloud(THREE, { width:W, height:H, depthRange:[0.3, 3.0], pointSize:4 });
+scene.add(cloud.points);
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ── source: synthetic test pattern OR a video (SBS split, reused from peer-holograms) ──
+let mode = 'synth';            // 'synth' | 'video'
+let layout = 'metavido';       // 'metavido' (Keijiro quadrant) | 'horizontal' | 'vertical'
+const LAYOUTS = ['metavido','horizontal','vertical'];
+let paused = false;
+const status = (h) => document.getElementById('status').innerHTML = h;
+const sub = (t) => document.getElementById('sub').textContent = t;
+
+// --- synthetic: a breathing depth sphere + radial color, hue-encoded to match the shader ---
+const depthBuf = new Uint8Array(W*H*4), colorBuf = new Uint8Array(W*H*4);
+function hsv2rgb(h){ const i=Math.floor(h*6), f=h*6-i, q=1-f; // s=v=1 (color only)
+  switch(i%6){ case 0:return[255,f*255,0]; case 1:return[q*255,255,0]; case 2:return[0,255,f*255];
+              case 3:return[0,q*255,255]; case 4:return[f*255,0,255]; default:return[255,0,q*255]; } }
+// Canonical Metavido depth encode (jp.keijiro.metavido Common.hlsl) — must match the
+// rgbd-cloud.js decode so the synthetic pattern round-trips. Triangle-wave hue + padding.
+const clamp01=(v)=>v<0?0:v>1?1:v;
+function mtvdHue2rgb(hue){ const h=hue*6-2;
+  return [clamp01(Math.abs(h-1)-1)*255, clamp01(2-Math.abs(h))*255, clamp01(2-Math.abs(h-2))*255]; }
+function mtvdEncodeDepth(depth, near, far){
+  let d=(depth-near)/(far-near);
+  d=d*(1-0.02)+0.01;            // padding
+  d=clamp01(d)*(1-0.02)+0.01;   // margin
+  return mtvdHue2rgb(d); }
+function renderSynth(t){
+  const cx=0.5, cy=0.5;
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const i=(y*W+x)*4, nx=x/W-cx, ny=y/H-cy, r=Math.hypot(nx,ny);
+    const bump = Math.max(0, 1 - r*2.6) * (0.85 + 0.15*Math.sin(t*0.002)); // sphere that breathes
+    const inside = bump > 0.02;
+    // depth 0..1 → hue (shader decodes hue→depth); near=low hue
+    const depthM = inside ? (0.6 + (1-bump)*1.6) : 0.0; // 0.6..2.2 m, near at the bump peak
+    const [dr,dg,db] = mtvdEncodeDepth(depthM, 0.3, 3.0);
+    depthBuf[i]=dr; depthBuf[i+1]=dg; depthBuf[i+2]=db; depthBuf[i+3]= inside?255:0;
+    const [crv,cgv,cbv] = hsv2rgb((Math.atan2(ny,nx)/(2*Math.PI)+0.5+t*0.0003)%1);
+    colorBuf[i]=crv*(0.5+bump*0.5); colorBuf[i+1]=cgv*(0.5+bump*0.5); colorBuf[i+2]=cbv*(0.5+bump*0.5); colorBuf[i+3]=255;
+  }
+  cloud.updateDepth(depthBuf, W, H); cloud.updateColor(colorBuf, W, H);
+}
+
+// --- video: reuse the exact SBS split contract from js/holo/peer-holograms.js ---
+let videoEl=null, splitCanvas=document.createElement('canvas'), sctx=splitCanvas.getContext('2d', { willReadFrequently:true });
+splitCanvas.width=W; splitCanvas.height=H;
+function renderVideoFrame(){
+  if(!videoEl || videoEl.readyState<2) return;
+  const vw=videoEl.videoWidth|0, vh=videoEl.videoHeight|0; if(!vw||!vh) return;
+  let dRect, cRect;
+  if(layout==='metavido'){
+    // Keijiro Metavido (Decoder/Shaders/Demux.shader): COLOR = right half full-height;
+    // DEPTH = bottom-left quadrant (hue-encoded). This is THE format Test.mp4 uses.
+    const hw=vw>>1, hh=vh>>1;
+    cRect={x:hw,y:0,w:hw,h:vh};
+    dRect={x:0,y:hh,w:hw,h:hh};
+  } else if(layout==='vertical'){ const hh=vh>>1; dRect={x:0,y:0,w:vw,h:hh}; cRect={x:0,y:hh,w:vw,h:hh}; }
+  else { const hw=vw>>1; dRect={x:0,y:0,w:hw,h:vh}; cRect={x:hw,y:0,w:hw,h:vh}; }
+  sctx.drawImage(videoEl, dRect.x,dRect.y,dRect.w,dRect.h, 0,0,W,H);
+  cloud.updateDepth(new Uint8Array(sctx.getImageData(0,0,W,H).data.buffer), W, H);
+  sctx.drawImage(videoEl, cRect.x,cRect.y,cRect.w,cRect.h, 0,0,W,H);
+  cloud.updateColor(new Uint8Array(sctx.getImageData(0,0,W,H).data.buffer), W, H);
+}
+
+function loadVideo(src, label){
+  if(videoEl){ try{ videoEl.pause(); videoEl.remove(); }catch{} }
+  videoEl = document.createElement('video');
+  videoEl.src = src; videoEl.loop = true; videoEl.muted = true; videoEl.playsInline = true; videoEl.crossOrigin='anonymous';
+  videoEl.play().then(()=>{ mode='video'; document.getElementById('btn-synth').setAttribute('aria-pressed','false');
+    sub(`Metavido RGBD · ${label} · ${videoEl.videoWidth}×${videoEl.videoHeight}`);
+    status(`playing <b>${label}</b> · ${layout} SBS · ${videoEl.videoWidth}×${videoEl.videoHeight} → ${W}×${H} cloud`);
+  }).catch(e=> status(`<b>play failed</b> · ${e.message} (try the layout toggle)`));
+}
+
+// ── controls ──────────────────────────────────────────────────────────────────
+document.getElementById('btn-synth').onclick = (e)=>{ mode='synth'; e.target.setAttribute('aria-pressed','true');
+  if(videoEl){ try{videoEl.pause();}catch{} } sub('Metavido RGBD → point-cloud · synthetic test pattern');
+  status('synthetic RGBD test pattern · proves the decode pipeline with no asset'); };
+document.getElementById('seg-layout').onclick = ()=>{ layout = LAYOUTS[(LAYOUTS.indexOf(layout)+1)%LAYOUTS.length];
+  document.getElementById('layout-v').textContent = layout; };
+document.getElementById('btn-pause').onclick = (e)=>{ paused=!paused; e.target.textContent = paused?'▶ play':'⏸ pause';
+  if(videoEl){ paused?videoEl.pause():videoEl.play(); } };
+document.getElementById('size').oninput = (e)=> cloud.setPointSize(+e.target.value);
+document.getElementById('file').onchange = (e)=>{ const f=e.target.files[0]; if(f) loadVideo(URL.createObjectURL(f), f.name); };
+const drop=document.getElementById('drop');
+addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('show'); });
+addEventListener('dragleave', e=>{ if(e.relatedTarget===null) drop.classList.remove('show'); });
+addEventListener('drop', e=>{ e.preventDefault(); drop.classList.remove('show');
+  const f=[...e.dataTransfer.files].find(f=>f.type.startsWith('video/')); if(f) loadVideo(URL.createObjectURL(f), f.name); });
+// ?src= deep link (e.g. a hosted Metavido capture)
+const src = new URLSearchParams(location.search).get('src'); if(src) loadVideo(src, src.split('/').pop());
+
+// ── loop ──────────────────────────────────────────────────────────────────────
+function frame(t){
+  requestAnimationFrame(frame);
+  if(!paused){ if(mode==='synth') renderSynth(t); else renderVideoFrame(); }
+  controls.update();
+  renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+window.__holo = { cloud, scene, get mode(){return mode;}, get layout(){return layout;} }; // test hook
+</script>
+</body>
+</html>

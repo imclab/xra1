@@ -1,0 +1,708 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>XRAI — Spatial Intelligence OS · Night</title>
+<meta name="description" content="The www for physical spaces. Voice + gesture + gaze. Holograms, splats, ARKit, multiplayer — one spatial substrate." />
+
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles/brand.css" />
+
+<style>
+:root {
+  --abyss: #05060a;
+  --abyss-2: #0a0d18;
+  --abyss-3: #0f1428;
+  --glass-fill: rgba(255,255,255,0.045);
+  --glass-fill-strong: rgba(255,255,255,0.075);
+  --glass-stroke: rgba(255,255,255,0.14);
+  --glass-stroke-soft: rgba(255,255,255,0.07);
+  --fg: rgba(255,255,255,0.95);
+  --fg-dim: rgba(255,255,255,0.62);
+  --fg-fade: rgba(255,255,255,0.38);
+  --iris: #F7FFA8;
+  --iris-glow: rgba(247,255,168,0.55);
+  --peri: #A8A8FF;
+  --peri-glow: rgba(168,168,255,0.55);
+  --warn: #FF9AB8;
+  --grid: rgba(255,255,255,0.05);
+  --depth-near: 0 1px 0 rgba(255,255,255,0.18) inset, 0 0 0 1px var(--glass-stroke), 0 30px 60px -20px rgba(0,0,0,0.85), 0 12px 24px -8px rgba(0,0,0,0.6);
+  --depth-far: 0 1px 0 rgba(255,255,255,0.10) inset, 0 0 0 1px var(--glass-stroke-soft), 0 18px 36px -12px rgba(0,0,0,0.7);
+  --blur: saturate(180%) blur(36px);
+  --blur-strong: saturate(200%) blur(60px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+html, body { min-height: 100%; background: var(--abyss); color: var(--fg); font-family: 'Satoshi', -apple-system, sans-serif; font-weight: 400; letter-spacing: -0.005em; overflow-x: hidden; }
+body { font-size: 14px; line-height: 1.5; }
+
+/* —————— Volumetric stage —————— */
+.stage {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(80% 60% at 20% 10%, rgba(168,168,255,0.10), transparent 70%),
+    radial-gradient(70% 60% at 85% 25%, rgba(247,255,168,0.07), transparent 70%),
+    radial-gradient(90% 90% at 50% 110%, rgba(168,168,255,0.10), transparent 65%),
+    linear-gradient(180deg, var(--abyss) 0%, var(--abyss-2) 50%, var(--abyss-3) 100%);
+}
+.stage::after {
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(closest-side at 50% 50%, #000 30%, transparent 80%);
+  opacity: 0.55;
+  transform: perspective(1200px) rotateX(58deg) translateY(28%) scale(1.6);
+  transform-origin: 50% 50%;
+}
+.stage .nebula {
+  position: absolute; inset: -20%;
+  background:
+    radial-gradient(closest-side, rgba(168,168,255,0.18), transparent 70%) 15% 30% / 60% 60% no-repeat,
+    radial-gradient(closest-side, rgba(247,255,168,0.12), transparent 70%) 85% 70% / 50% 50% no-repeat;
+  filter: blur(70px);
+  animation: drift 28s ease-in-out infinite alternate;
+}
+.stage .grain { position: absolute; inset: 0; opacity: 0.06; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>");
+}
+@keyframes drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(2%, -3%, 0); } }
+
+/* —————— Top bar (orb + chips) —————— */
+.bar {
+  position: fixed; top: 18px; left: 18px; right: 18px; z-index: 50;
+  display: flex; align-items: center; gap: 14px;
+}
+.glass {
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--blur);
+  backdrop-filter: var(--blur);
+  border-radius: 22px;
+  box-shadow: var(--depth-far);
+}
+.glass.near { background: var(--glass-fill-strong); box-shadow: var(--depth-near); }
+
+.bar .orb {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 12px; border-radius: 999px;
+}
+.bar .orb .dot {
+  width: 28px; height: 28px; border-radius: 999px;
+  background: radial-gradient(circle at 30% 25%, #ffffff 0%, var(--iris) 35%, rgba(247,255,168,0.4) 75%, rgba(247,255,168,0) 100%);
+  box-shadow: 0 0 24px var(--iris-glow), 0 0 60px rgba(247,255,168,0.18);
+  animation: breath 3.6s ease-in-out infinite;
+}
+@keyframes breath {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.08); filter: brightness(1.15); }
+}
+.bar .orb b { font-family: 'Satoshi', sans-serif; font-weight: 500; font-size: 22px; letter-spacing: -0.01em; }
+.bar .orb b i { font-style: italic; color: var(--iris); }
+.bar .orb small { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); letter-spacing: 0.06em; text-transform: uppercase; }
+
+.chips { display: flex; gap: 8px; margin-left: auto; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.04em; color: var(--fg-dim);
+  background: var(--glass-fill); border: 1px solid var(--glass-stroke-soft);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  transition: color .25s, background .25s, border-color .25s, transform .25s;
+}
+.chip:hover { color: var(--fg); background: var(--glass-fill-strong); border-color: var(--glass-stroke); transform: translateY(-1px); }
+.chip .pill { width: 6px; height: 6px; border-radius: 999px; background: var(--peri); box-shadow: 0 0 8px var(--peri-glow); }
+.chip.live .pill { background: var(--iris); box-shadow: 0 0 10px var(--iris-glow); animation: blink 1.6s ease-in-out infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+/* —————— Hero typography —————— */
+.hero {
+  position: relative; z-index: 5;
+  padding: 130px 56px 40px;
+  max-width: 1320px; margin: 0 auto;
+}
+.eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--fg-fade); margin-bottom: 22px; }
+.eyebrow span { color: var(--iris); }
+h1 {
+  font-family: 'Satoshi', sans-serif; font-weight: 400; font-style: normal;
+  font-size: clamp(48px, 7.2vw, 108px); line-height: 0.96; letter-spacing: -0.02em;
+  max-width: 18ch;
+}
+h1 em { font-style: italic; color: var(--peri); }
+h1 .accent { font-style: italic; background: linear-gradient(180deg, var(--iris), #fff 80%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede {
+  margin-top: 28px; max-width: 56ch; font-size: 17px; line-height: 1.55; color: var(--fg-dim);
+}
+.lede b { color: var(--fg); font-weight: 500; }
+
+.cta-row { margin-top: 36px; display: flex; gap: 12px; flex-wrap: wrap; }
+.cta {
+  display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px;
+  font-weight: 500; font-size: 14px; letter-spacing: -0.005em;
+  background: var(--fg); color: #000; border: 0; cursor: pointer;
+  box-shadow: 0 12px 30px -10px rgba(255,255,255,0.35), 0 0 0 1px rgba(255,255,255,0.6) inset;
+  transition: transform .2s, box-shadow .2s;
+}
+.cta:hover { transform: translateY(-2px); box-shadow: 0 18px 40px -12px rgba(255,255,255,0.45), 0 0 0 1px rgba(255,255,255,0.8) inset; }
+.cta.ghost {
+  background: var(--glass-fill); color: var(--fg); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  box-shadow: 0 0 0 1px var(--glass-stroke) inset, 0 14px 30px -16px rgba(0,0,0,0.7);
+}
+.cta.ghost:hover { background: var(--glass-fill-strong); }
+.cta kbd {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 4px 7px; border-radius: 6px;
+  background: rgba(0,0,0,0.18); border: 1px solid rgba(0,0,0,0.18); color: rgba(0,0,0,0.7);
+}
+.cta.ghost kbd { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); color: var(--fg-dim); }
+
+/* —————— Floating panel mosaic —————— */
+.mosaic {
+  position: relative; z-index: 4;
+  padding: 24px 56px 80px;
+  max-width: 1320px; margin: 0 auto;
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: 110px;
+}
+.panel {
+  border-radius: 26px; padding: 22px;
+  position: relative; overflow: hidden;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  box-shadow: var(--depth-near);
+  border: 1px solid var(--glass-stroke-soft);
+  transition: transform .5s cubic-bezier(.2,.7,.2,1), box-shadow .5s;
+}
+.panel:hover { transform: translateY(-4px); box-shadow: var(--depth-near), 0 30px 80px -20px rgba(168,168,255,0.18); }
+.panel header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.panel header .tag { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--fg-fade); }
+.panel h3 { font-family: 'Satoshi', sans-serif; font-weight: 400; font-size: 22px; line-height: 1.1; letter-spacing: -0.01em; }
+.panel h3 em { font-style: italic; color: var(--peri); }
+.panel p { color: var(--fg-dim); font-size: 13px; line-height: 1.45; }
+.panel .meta { display: flex; gap: 10px; color: var(--fg-fade); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+.panel.feature {
+  background: linear-gradient(135deg, rgba(247,255,168,0.06), rgba(168,168,255,0.05) 60%, rgba(255,255,255,0.02));
+  border-color: var(--glass-stroke);
+}
+
+/* grid positions */
+.p-hologram  { grid-column: 1 / span 7; grid-row: span 4; }
+.p-gesture   { grid-column: 8 / span 5; grid-row: span 4; }
+.p-timeline  { grid-column: 1 / span 7; grid-row: span 3; }
+.p-multi     { grid-column: 8 / span 5; grid-row: span 3; }
+.p-splat     { grid-column: 1 / span 5; grid-row: span 3; }
+.p-icosa     { grid-column: 6 / span 4; grid-row: span 3; }
+.p-jarvis    { grid-column: 10 / span 3; grid-row: span 3; }
+
+@media (max-width: 1080px) {
+  .hero { padding: 110px 28px 24px; }
+  .mosaic { padding: 16px 28px 60px; grid-template-columns: repeat(6, 1fr); }
+  .p-hologram, .p-timeline, .p-splat { grid-column: 1 / -1; }
+  .p-gesture, .p-multi, .p-icosa, .p-jarvis { grid-column: 1 / -1; }
+}
+
+/* —————— Hologram panel viz —————— */
+.holo-stage {
+  position: absolute; inset: 60px 0 70px; display: grid; place-items: center;
+}
+.holo-rings { position: relative; width: 78%; aspect-ratio: 1.7 / 1; }
+.holo-rings .ring {
+  position: absolute; inset: 0; border: 1px solid rgba(168,168,255,0.25); border-radius: 50%;
+  transform-origin: 50% 80%;
+  animation: spin 22s linear infinite;
+}
+.holo-rings .ring:nth-child(2) { inset: 8% 8%; border-color: rgba(247,255,168,0.22); animation-duration: 30s; animation-direction: reverse; }
+.holo-rings .ring:nth-child(3) { inset: 18% 18%; border-color: rgba(255,255,255,0.15); animation-duration: 18s; }
+.holo-rings .ring:nth-child(4) { inset: 28% 28%; border-color: rgba(247,255,168,0.4); animation-duration: 14s; animation-direction: reverse; }
+@keyframes spin {
+  0% { transform: perspective(900px) rotateX(70deg) rotateZ(0); }
+  100% { transform: perspective(900px) rotateX(70deg) rotateZ(360deg); }
+}
+.holo-figure {
+  position: absolute; left: 50%; top: 18%; transform: translateX(-50%);
+  width: 38%; aspect-ratio: 1 / 2.2;
+  background:
+    radial-gradient(60% 30% at 50% 12%, var(--iris) 0%, rgba(247,255,168,0.4) 30%, transparent 70%),
+    radial-gradient(45% 18% at 50% 40%, rgba(168,168,255,0.7) 0%, transparent 70%),
+    radial-gradient(40% 12% at 50% 65%, rgba(168,168,255,0.5) 0%, transparent 70%),
+    radial-gradient(60% 16% at 50% 92%, rgba(247,255,168,0.35) 0%, transparent 70%);
+  filter: blur(0.5px);
+  mask-image:
+    repeating-linear-gradient(0deg, #000 0px, #000 1px, transparent 1px, transparent 3px);
+  -webkit-mask-image:
+    repeating-linear-gradient(0deg, #000 0px, #000 1px, transparent 1px, transparent 3px);
+  animation: hover 6s ease-in-out infinite alternate;
+}
+@keyframes hover { from { transform: translate(-50%, 0); } to { transform: translate(-50%, -10px); } }
+.holo-base {
+  position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+  width: 60%; height: 18px; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--iris-glow), transparent 70%);
+  filter: blur(8px);
+}
+.holo-readout {
+  position: absolute; left: 22px; bottom: 22px; right: 22px;
+  display: flex; justify-content: space-between; align-items: end;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.05em; color: var(--fg-fade);
+}
+.holo-readout .stat b { display: block; color: var(--fg); font-size: 22px; font-family: 'Satoshi', sans-serif; font-weight: 400; line-height: 1; }
+.holo-readout .stat span { text-transform: uppercase; }
+
+/* —————— Gesture panel —————— */
+.gesture-stage { position: absolute; inset: 56px 0 60px; display: grid; place-items: center; }
+.palm { position: relative; width: 76%; aspect-ratio: 1 / 1; }
+.palm svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.palm .joint { fill: var(--iris); filter: drop-shadow(0 0 6px var(--iris-glow)); animation: pulse 2.2s ease-in-out infinite; }
+.palm .joint.peri { fill: var(--peri); filter: drop-shadow(0 0 6px var(--peri-glow)); }
+.palm .bone { stroke: rgba(255,255,255,0.35); stroke-width: 1.3; stroke-linecap: round; fill: none; stroke-dasharray: 2 3; animation: dash 8s linear infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.55; transform: scale(0.85); } }
+@keyframes dash { to { stroke-dashoffset: -40; } }
+.palm .arc { fill: none; stroke: rgba(247,255,168,0.45); stroke-width: 1; stroke-dasharray: 3 6; }
+.gesture-readout {
+  position: absolute; left: 22px; bottom: 22px; right: 22px;
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.05em; color: var(--fg-fade);
+}
+.gesture-readout span b { color: var(--fg); }
+
+/* —————— ARKit timeline —————— */
+.timeline { position: absolute; inset: 56px 22px 22px; display: flex; flex-direction: column; gap: 8px; }
+.tl-row { display: grid; grid-template-columns: 110px 1fr 60px; align-items: center; gap: 14px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-fade); letter-spacing: 0.06em; }
+.tl-row .label { text-transform: uppercase; }
+.tl-row .bar-track { position: relative; height: 18px; background: rgba(255,255,255,0.04); border-radius: 6px; overflow: hidden; border: 1px solid var(--glass-stroke-soft); }
+.tl-row .seg { position: absolute; top: 2px; bottom: 2px; border-radius: 4px; }
+.tl-row.depth .seg { background: linear-gradient(90deg, var(--peri), rgba(168,168,255,0.2)); }
+.tl-row.pose .seg { background: linear-gradient(90deg, var(--iris), rgba(247,255,168,0.2)); }
+.tl-row.mesh .seg { background: linear-gradient(90deg, #fff, rgba(255,255,255,0.15)); }
+.tl-row.audio .seg { background: linear-gradient(90deg, #FF9AB8, rgba(255,154,184,0.2)); }
+.tl-row.intent .seg { background: linear-gradient(90deg, var(--peri), var(--iris)); }
+.tl-row .ms { text-align: right; color: var(--fg); }
+.tl-cursor {
+  position: absolute; top: 0; bottom: 0; left: 62%; width: 1px;
+  background: linear-gradient(180deg, transparent, var(--iris), transparent);
+  box-shadow: 0 0 10px var(--iris-glow);
+  animation: scrub 9s ease-in-out infinite alternate;
+}
+@keyframes scrub { from { left: 12%; } to { left: 88%; } }
+
+/* —————— Multiplayer presence —————— */
+.presence { position: absolute; inset: 56px 22px 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; }
+.presence .room {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.avatar {
+  position: relative; width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--peri), var(--iris));
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.4), 0 0 18px rgba(168,168,255,0.45);
+  display: grid; place-items: center; font-family: 'Satoshi', sans-serif; color: #0a0d18; font-size: 16px;
+}
+.avatar.b { background: linear-gradient(135deg, #fff, var(--iris)); }
+.avatar.c { background: linear-gradient(135deg, #FF9AB8, var(--peri)); }
+.avatar.d { background: linear-gradient(135deg, var(--iris), #fff); }
+.avatar.ghost { background: rgba(255,255,255,0.06); color: var(--fg-dim); border: 1px dashed var(--glass-stroke); box-shadow: none; }
+.presence .lines { display: flex; flex-direction: column; gap: 6px; }
+.line {
+  display: grid; grid-template-columns: 24px 1fr auto; gap: 10px; align-items: center;
+  font-size: 12px; color: var(--fg-dim);
+}
+.line .who { font-family: 'Satoshi', sans-serif; color: var(--fg); font-size: 14px; }
+.line .who em { color: var(--peri); font-style: italic; }
+.line .when { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-fade); }
+.line .ico { font-family: 'JetBrains Mono', monospace; color: var(--iris); }
+
+/* —————— Splat panel —————— */
+.splat-stage { position: absolute; inset: 56px 22px 22px; display: grid; place-items: center; }
+.splat-cloud { position: relative; width: 100%; height: 100%; }
+.splat-cloud .dot {
+  position: absolute; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--peri); box-shadow: 0 0 6px var(--peri-glow);
+  animation: shimmer 4s ease-in-out infinite alternate;
+}
+@keyframes shimmer { from { transform: scale(1); opacity: 0.6; } to { transform: scale(1.4); opacity: 1; } }
+
+/* —————— Icosa cluster —————— */
+.icosa-stage { position: absolute; inset: 56px 22px 60px; display: grid; place-items: center; }
+.icosa {
+  width: 60%; aspect-ratio: 1; position: relative;
+  animation: tumble 22s linear infinite;
+  transform-style: preserve-3d;
+}
+@keyframes tumble { to { transform: rotateX(360deg) rotateY(360deg); } }
+.icosa .face {
+  position: absolute; inset: 18%;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: linear-gradient(135deg, rgba(168,168,255,0.10), rgba(247,255,168,0.04));
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border-radius: 8px;
+}
+.icosa .face.f1 { transform: rotateY(0deg) translateZ(46px); }
+.icosa .face.f2 { transform: rotateY(72deg) translateZ(46px); border-color: rgba(247,255,168,0.4); }
+.icosa .face.f3 { transform: rotateY(144deg) translateZ(46px); }
+.icosa .face.f4 { transform: rotateY(216deg) translateZ(46px); border-color: rgba(247,255,168,0.4); }
+.icosa .face.f5 { transform: rotateY(288deg) translateZ(46px); }
+.icosa-readout {
+  position: absolute; left: 22px; bottom: 22px; right: 22px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-fade); letter-spacing: 0.05em; text-transform: uppercase;
+}
+.icosa-readout b { color: var(--fg); }
+
+/* —————— Jarvis prompt panel —————— */
+.jarvis-stage { position: absolute; inset: 56px 22px 22px; display: flex; flex-direction: column; justify-content: space-between; }
+.jarvis-lines { display: flex; flex-direction: column; gap: 12px; }
+.jline { font-family: 'Satoshi', sans-serif; font-size: 18px; line-height: 1.25; color: var(--fg); }
+.jline.u { color: var(--fg-dim); font-style: italic; }
+.jline.u::before { content: "↳ "; color: var(--peri); font-style: normal; }
+.jline.a::before { content: "✦ "; color: var(--iris); font-style: normal; }
+.jcaret { display: inline-block; width: 8px; height: 18px; vertical-align: middle; background: var(--iris); box-shadow: 0 0 10px var(--iris-glow); animation: caret 1.1s steps(2,end) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.jarvis-input {
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px;
+  background: rgba(0,0,0,0.35); border: 1px solid var(--glass-stroke-soft);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--fg-dim);
+}
+.jarvis-input .mic { width: 8px; height: 8px; border-radius: 50%; background: var(--iris); box-shadow: 0 0 10px var(--iris-glow); animation: blink 1.4s ease-in-out infinite; }
+
+/* —————— Surface federation strip —————— */
+.surfaces {
+  position: relative; z-index: 4;
+  max-width: 1320px; margin: 0 auto; padding: 0 56px 80px;
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px;
+}
+.surf {
+  padding: 18px; border-radius: 18px;
+  background: var(--glass-fill); -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
+  border: 1px solid var(--glass-stroke-soft); box-shadow: var(--depth-far);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.surf .glyph { font-family: 'Satoshi', sans-serif; font-size: 28px; line-height: 1; color: var(--fg); }
+.surf b { font-family: 'Satoshi', sans-serif; font-weight: 500; font-size: 13px; }
+.surf small { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-fade); letter-spacing: 0.05em; text-transform: uppercase; }
+.surf .status { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--fg-dim); }
+.surf .status .d { width: 5px; height: 5px; border-radius: 50%; }
+.surf.live .d { background: var(--iris); box-shadow: 0 0 6px var(--iris-glow); }
+.surf.soon .d { background: rgba(255,255,255,0.35); }
+
+@media (max-width: 900px) { .surfaces { grid-template-columns: repeat(2, 1fr); padding: 0 28px 60px; } }
+
+/* —————— Footer keys —————— */
+.footnote {
+  position: relative; z-index: 4;
+  max-width: 1320px; margin: 0 auto; padding: 0 56px 60px;
+  display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+  color: var(--fg-fade); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.footnote a { color: var(--fg-dim); text-decoration: none; border-bottom: 1px solid var(--glass-stroke-soft); padding-bottom: 1px; }
+.footnote a:hover { color: var(--iris); border-color: var(--iris); }
+
+/* Stagger entrance */
+.fade-up { opacity: 0; transform: translateY(14px); animation: rise .9s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes rise { to { opacity: 1; transform: translateY(0); } }
+.d1 { animation-delay: .1s; } .d2 { animation-delay: .22s; } .d3 { animation-delay: .34s; }
+.d4 { animation-delay: .46s; } .d5 { animation-delay: .58s; } .d6 { animation-delay: .7s; } .d7 { animation-delay: .82s; } .d8 { animation-delay: .94s; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="nebula"></div>
+  <div class="grain"></div>
+</div>
+
+<!-- Top bar -->
+<div class="bar">
+  <div class="glass near orb fade-up d1">
+    <div class="dot"></div>
+    <div>
+      <b>j<i>AR</i>vis</b>
+      <small style="display:block; margin-top: -2px;">Spatial OS · Night build</small>
+    </div>
+  </div>
+  <div class="chips">
+    <div class="chip live fade-up d2"><span class="pill"></span> ARKit · 60fps</div>
+    <div class="chip live fade-up d3"><span class="pill"></span> 4 peers · webrtc</div>
+    <div class="chip fade-up d4"><span class="pill"></span> XRAI v0.9.2</div>
+    <div class="chip fade-up d5"><span class="pill"></span> ⌘ K</div>
+  </div>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="eyebrow fade-up d1"><span>◐</span>  THE WWW FOR PHYSICAL SPACES   ·   CVPR 2026 · MIT</div>
+  <h1 class="fade-up d2">A <em>spatial</em> operating system for <span class="accent">real</span> rooms, <span class="accent">real</span> people, <em>real</em> minds.</h1>
+  <p class="lede fade-up d3">
+    <b>XRAI</b> is the substrate. <b>jARvis</b> is the oracle. Voice, gesture, gaze — one frame.
+    Holograms, gaussian splats, ARKit data, multiplayer screenshare, Icosa galleries — all on the same
+    glass canvas. Speak it, see it, share it. The view follows the mind, not the cursor.
+  </p>
+  <div class="cta-row fade-up d4">
+    <button class="cta">Enter the room <kbd>⏎</kbd></button>
+    <button class="cta ghost">Watch the demo <kbd>SPACE</kbd></button>
+    <button class="cta ghost">Read the constitution <kbd>?</kbd></button>
+  </div>
+</section>
+
+<!-- Panel mosaic -->
+<section class="mosaic">
+
+  <!-- Hologram viewer (record3d) -->
+  <article class="panel feature p-hologram fade-up d3">
+    <header>
+      <div>
+        <h3>Live <em>hologram</em> from the pocket.</h3>
+      </div>
+      <div class="tag">RECORD3D · LIDAR · 30 FPS</div>
+    </header>
+    <div class="holo-stage">
+      <div class="holo-rings">
+        <div class="ring"></div><div class="ring"></div><div class="ring"></div><div class="ring"></div>
+      </div>
+      <div class="holo-figure"></div>
+      <div class="holo-base"></div>
+    </div>
+    <div class="holo-readout">
+      <div class="stat"><b>0.42m</b><span>focal depth</span></div>
+      <div class="stat"><b>92k</b><span>points / frame</span></div>
+      <div class="stat"><b>14ms</b><span>encode</span></div>
+      <div class="stat"><b>↗ LiveKit</b><span>SBS depth + color</span></div>
+    </div>
+  </article>
+
+  <!-- Gesture HUD (AI Studio) -->
+  <article class="panel p-gesture fade-up d4">
+    <header>
+      <h3>Gesture <em>frame</em>, not cursor.</h3>
+      <div class="tag">MEDIAPIPE · 21 KEYPTS</div>
+    </header>
+    <div class="gesture-stage">
+      <div class="palm">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+          <!-- bones -->
+          <path class="bone" d="M50,80 L42,60 L36,42 L32,28 L30,16"></path>
+          <path class="bone" d="M50,80 L48,55 L46,36 L44,22 L42,10"></path>
+          <path class="bone" d="M50,80 L54,55 L56,36 L58,22 L60,10"></path>
+          <path class="bone" d="M50,80 L60,58 L66,42 L70,30 L72,20"></path>
+          <path class="bone" d="M50,80 L62,72 L72,66 L80,62"></path>
+          <!-- arc gesture -->
+          <path class="arc" d="M22,32 Q50,8 78,32"></path>
+          <!-- joints -->
+          <circle class="joint" cx="50" cy="80" r="3.2"></circle>
+          <circle class="joint peri" cx="42" cy="60" r="2.2"></circle>
+          <circle class="joint" cx="36" cy="42" r="2"></circle>
+          <circle class="joint peri" cx="32" cy="28" r="2"></circle>
+          <circle class="joint" cx="30" cy="16" r="2.4"></circle>
+          <circle class="joint peri" cx="48" cy="55" r="2.2"></circle>
+          <circle class="joint" cx="46" cy="36" r="2"></circle>
+          <circle class="joint peri" cx="44" cy="22" r="2"></circle>
+          <circle class="joint" cx="42" cy="10" r="2.4"></circle>
+          <circle class="joint" cx="54" cy="55" r="2.2"></circle>
+          <circle class="joint peri" cx="56" cy="36" r="2"></circle>
+          <circle class="joint" cx="58" cy="22" r="2"></circle>
+          <circle class="joint peri" cx="60" cy="10" r="2.4"></circle>
+          <circle class="joint peri" cx="60" cy="58" r="2.2"></circle>
+          <circle class="joint" cx="66" cy="42" r="2"></circle>
+          <circle class="joint peri" cx="70" cy="30" r="2"></circle>
+          <circle class="joint" cx="72" cy="20" r="2.4"></circle>
+          <circle class="joint" cx="62" cy="72" r="2"></circle>
+          <circle class="joint peri" cx="72" cy="66" r="2"></circle>
+          <circle class="joint" cx="80" cy="62" r="2.4"></circle>
+        </svg>
+      </div>
+    </div>
+    <div class="gesture-readout">
+      <span>POSE <b>open-palm</b></span>
+      <span>YAW <b>+0.18</b></span>
+      <span>INTENT <b style="color:var(--iris)">summon</b></span>
+      <span>CONF <b>0.94</b></span>
+    </div>
+  </article>
+
+  <!-- ARKit timeline (rerun.io) -->
+  <article class="panel p-timeline fade-up d5">
+    <header>
+      <h3>Sensor <em>rewind</em>. Scrub the room.</h3>
+      <div class="tag">RERUN-STYLE TIMELINE · T-9.4s → NOW</div>
+    </header>
+    <div class="timeline">
+      <div class="tl-row depth">
+        <span class="label">DEPTH</span>
+        <div class="bar-track"><div class="seg" style="left:5%; right:8%"></div><div class="tl-cursor"></div></div>
+        <span class="ms">256×192</span>
+      </div>
+      <div class="tl-row pose">
+        <span class="label">BODY POSE</span>
+        <div class="bar-track"><div class="seg" style="left:14%; right:22%"></div></div>
+        <span class="ms">23 jts</span>
+      </div>
+      <div class="tl-row mesh">
+        <span class="label">SCENE MESH</span>
+        <div class="bar-track"><div class="seg" style="left:2%; right:46%"></div></div>
+        <span class="ms">18k tri</span>
+      </div>
+      <div class="tl-row audio">
+        <span class="label">AUDIO RMS</span>
+        <div class="bar-track"><div class="seg" style="left:26%; right:6%"></div></div>
+        <span class="ms">-18 dB</span>
+      </div>
+      <div class="tl-row intent">
+        <span class="label">INTENT</span>
+        <div class="bar-track"><div class="seg" style="left:62%; right:10%"></div></div>
+        <span class="ms">summon</span>
+      </div>
+    </div>
+  </article>
+
+  <!-- Multiplayer presence (Needle WebRTC) -->
+  <article class="panel p-multi fade-up d5">
+    <header>
+      <h3>Same <em>room</em>, three glasses.</h3>
+      <div class="tag">NEEDLE · WEBRTC SHARE</div>
+    </header>
+    <div class="presence">
+      <div class="room">
+        <div class="avatar">J</div>
+        <div class="avatar b">Y</div>
+        <div class="avatar c">R</div>
+        <div class="avatar d">M</div>
+        <div class="avatar ghost">+2</div>
+      </div>
+      <div class="lines">
+        <div class="line"><span class="ico">⌕</span><span class="who">jamie <em>summoned</em> lifelike_hologram</span><span class="when">02:14</span></div>
+        <div class="line"><span class="ico">↻</span><span class="who">ryan painted a swarm in <em>screenshare</em></span><span class="when">01:48</span></div>
+        <div class="line"><span class="ico">◐</span><span class="who">model joined from <em>visionOS</em></span><span class="when">01:22</span></div>
+      </div>
+    </div>
+  </article>
+
+  <!-- Splat panel (PlayCanvas / supersplats) -->
+  <article class="panel p-splat fade-up d6">
+    <header>
+      <h3>Animated <em>splats</em>, by the million.</h3>
+      <div class="tag">PLAYCANVAS · 4D · 1.2M GAUSSIANS</div>
+    </header>
+    <div class="splat-stage">
+      <div class="splat-cloud" id="splat"></div>
+    </div>
+  </article>
+
+  <!-- Icosa viewer -->
+  <article class="panel p-icosa fade-up d6">
+    <header>
+      <h3>The <em>icosahedral</em> gallery.</h3>
+      <div class="tag">ICOSA DB · OPEN</div>
+    </header>
+    <div class="icosa-stage">
+      <div class="icosa">
+        <div class="face f1"></div>
+        <div class="face f2"></div>
+        <div class="face f3"></div>
+        <div class="face f4"></div>
+        <div class="face f5"></div>
+      </div>
+    </div>
+    <div class="icosa-readout">
+      <b>147,239</b> · open assets · royalty free
+    </div>
+  </article>
+
+  <!-- Jarvis prompt -->
+  <article class="panel feature p-jarvis fade-up d7">
+    <header>
+      <h3><em>Ask</em> the room.</h3>
+      <div class="tag">jARvis · LIVE</div>
+    </header>
+    <div class="jarvis-stage">
+      <div class="jarvis-lines">
+        <div class="jline u">make this place feel like a planetarium</div>
+        <div class="jline a">composing — galaxy_environment_portals6 · dim lights · slow drift<span class="jcaret"></span></div>
+      </div>
+      <div class="jarvis-input">
+        <span class="mic"></span> hold <b style="color:var(--fg);">⌥</b> to speak · type to compose
+      </div>
+    </div>
+  </article>
+
+</section>
+
+<!-- Surface federation -->
+<section class="surfaces">
+  <div class="surf live fade-up d4"><div class="glyph">◐</div><b>iOS · Portals</b><small>arkit · holokit · ualab</small><span class="status"><span class="d"></span> live · v4.38</span></div>
+  <div class="surf live fade-up d5"><div class="glyph">◑</div><b>Web · xra1.com</b><small>gemini · webspeech · mediapipe</small><span class="status"><span class="d"></span> live · 0.9.2</span></div>
+  <div class="surf live fade-up d5"><div class="glyph">◒</div><b>Unity 6 · Editor</b><small>composer · vfx · ecs</small><span class="status"><span class="d"></span> live · 6000.2</span></div>
+  <div class="surf soon fade-up d6"><div class="glyph">◓</div><b>visionOS · AVP</b><small>needle engine</small><span class="status"><span class="d"></span> phase 6.26</span></div>
+  <div class="surf soon fade-up d6"><div class="glyph">⊙</div><b>CLI · rn-jarvis</b><small>terminal oracle</small><span class="status"><span class="d"></span> phase 6.31</span></div>
+</section>
+
+<footer class="footnote">
+  <div class="fade-up d7">XRAI v0.9.2 · MIT · USPTO PROV 2026-04-08</div>
+  <div class="fade-up d7"><a href="https://github.com/imclab/portals_v4/blob/main/specs/constitution.md">constitution</a>  ·  <a href="jarvis.html">jARvis</a>  ·  <a href="viewer.html">viewer</a>  ·  <a href="replay.html">replay</a></div>
+</footer>
+
+<script>
+  // Splat cloud — pseudo gaussians arranged in spiral with subtle parallax on mousemove.
+  (function(){
+    const el = document.getElementById('splat');
+    if (!el) return;
+    const N = 140;
+    const frag = document.createDocumentFragment();
+    const dots = [];
+    for (let i = 0; i < N; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot';
+      const t = i / N;
+      const r = 8 + t * 42;                          // % radius
+      const a = t * Math.PI * 8 + Math.random()*0.4; // spiral
+      const cx = 50 + Math.cos(a) * r;
+      const cy = 50 + Math.sin(a) * r * 0.55;        // squashed orbit
+      d.style.left = cx + '%';
+      d.style.top  = cy + '%';
+      const hue = Math.random() > 0.5 ? 'var(--peri)' : 'var(--iris)';
+      d.style.background = hue;
+      d.style.boxShadow = '0 0 8px ' + (hue === 'var(--iris)' ? 'var(--iris-glow)' : 'var(--peri-glow)');
+      const s = 2 + Math.random() * 4;
+      d.style.width = s + 'px'; d.style.height = s + 'px';
+      d.style.animationDelay = (Math.random()*4).toFixed(2)+'s';
+      d.style.opacity = (0.35 + Math.random()*0.6).toFixed(2);
+      dots.push({el:d, x: cx, y: cy});
+      frag.appendChild(d);
+    }
+    el.appendChild(frag);
+
+    let mx = 0, my = 0;
+    const panel = el.closest('.panel');
+    panel.addEventListener('mousemove', (e) => {
+      const r = panel.getBoundingClientRect();
+      mx = (e.clientX - r.left) / r.width - 0.5;
+      my = (e.clientY - r.top) / r.height - 0.5;
+    });
+    panel.addEventListener('mouseleave', () => { mx = my = 0; });
+
+    function tick(){
+      const px = mx * 8, py = my * 8;
+      for (let i = 0; i < dots.length; i++) {
+        const d = dots[i];
+        const depth = 0.4 + (i / dots.length) * 1.2;
+        d.el.style.transform = `translate(${(-px*depth).toFixed(2)}px, ${(-py*depth).toFixed(2)}px)`;
+      }
+      requestAnimationFrame(tick);
+    }
+    tick();
+  })();
+
+  // Keyboard cues: ⏎ pulses primary CTA, ? scrolls to footer.
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const cta = document.querySelector('.cta:not(.ghost)');
+      if (!cta) return;
+      cta.animate(
+        [{ transform: 'translateY(0)' }, { transform: 'translateY(-3px)' }, { transform: 'translateY(0)' }],
+        { duration: 380, easing: 'cubic-bezier(.2,.7,.2,1)' }
+      );
+    }
+    if (e.key === '?') window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  });
+</script>
+
+</body>
+</html>
