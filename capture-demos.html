@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>XRAI — Spatial Capture Demos</title>
+<link rel="stylesheet" href="styles/brand.css" />
+<style>
+  body { margin:0; background:#000; color:#eee; font:14px/1.5 ui-monospace, Menlo, monospace; }
+  header { padding:24px 26px 6px; }
+  h1 { margin:0 0 4px; font-size:21px; }
+  .sub { color:#9a9aa6; max-width:880px; }
+  a.back { color:#7fd1ff; text-decoration:none; font-size:12px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:16px; padding:18px 26px 40px; }
+  .card { background:#121212; border:1px solid #262626; border-radius:10px; overflow:hidden; display:flex; flex-direction:column; }
+  .media { aspect-ratio:16/10; background:#000; position:relative; }
+  .media iframe, .media svg { width:100%; height:100%; border:0; display:block; }
+  .body { padding:12px 14px; }
+  .tag { display:inline-block; font-size:11px; padding:2px 7px; border-radius:5px; margin-bottom:6px; border:1px solid; }
+  .go { color:#39d98a; border-color:#39d98a; background:rgba(57,217,138,.12); }
+  .soon { color:#e0a020; border-color:#e0a020; background:rgba(224,160,32,.1); }
+  h3 { margin:4px 0 6px; font-size:15px; }
+  p { margin:0; color:#9a9aa6; font-size:12.5px; }
+  footer { color:#5a5a66; padding:0 26px 30px; font-size:11px; }
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="landing.html">← XRAI</a>
+  <h1>Spatial Capture Demos</h1>
+  <div class="sub"><p>Capturing and rendering real-world scenes as interactive 3D — Gaussian splats, RGBD depth + segmentation, multi-angle volumetric, and multimodal AR. 🟢 live · 🟡 in progress.</p></div>
+</header>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="media"><iframe src="gsplat-test.html" loading="lazy" title="Gaussian splat"></iframe></div>
+    <div class="body"><span class="tag go">🟢 live · WebGL</span><h3>Gaussian splat</h3>
+    <p>A photoreal captured scene rendered as a 3D Gaussian splat in the browser. Drag to orbit.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="media"><iframe src="holo.html" loading="lazy" title="RGBD hologram"></iframe></div>
+    <div class="body"><span class="tag go">🟢 live</span><h3>RGBD hologram</h3>
+    <p>Color + measured depth replayed as a live point-cloud hologram — the decomposed layers of a single capture.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="media"><iframe src="https://app.rerun.io/version/0.20.3/?url=https://app.rerun.io/version/0.20.3/examples/arkit_scenes.rrd&theme=dark" loading="lazy" title="Rerun ARKit"></iframe></div>
+    <div class="body"><span class="tag go">🟢 embedded · open source</span><h3>Multimodal AR (Rerun)</h3>
+    <p>An embedded <a href="https://rerun.io" style="color:#7fd1ff">Rerun</a> ARKit example: RGB, depth, point cloud, detections, mesh, and camera trajectory.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="media"><iframe src="spatial-os.html" loading="lazy" title="Spatial OS"></iframe></div>
+    <div class="body"><span class="tag go">🟢 live</span><h3>Spatial Intelligence OS</h3>
+    <p>The XRAI spatial OS concept surface.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="media">
+      <svg viewBox="0 0 320 200">
+        <rect width="320" height="200" fill="#070709"/>
+        <circle cx="160" cy="100" r="58" fill="none" stroke="#7fd1ff" stroke-width="1.4" opacity=".8"/>
+        <rect x="146" y="84" width="28" height="34" rx="4" fill="#15151c" stroke="#6f9c6a"/>
+        <g fill="#e0a020">
+          <circle cx="60" cy="40" r="5"/><circle cx="160" cy="30" r="5"/><circle cx="260" cy="40" r="5"/>
+          <circle cx="40" cy="100" r="5"/><circle cx="280" cy="100" r="5"/>
+          <circle cx="60" cy="160" r="5"/><circle cx="160" cy="170" r="5"/><circle cx="260" cy="160" r="5"/>
+          <circle cx="110" cy="20" r="5"/><circle cx="210" cy="20" r="5"/>
+        </g>
+        <text x="160" y="104" fill="#9a9aa6" font-size="10" text-anchor="middle" font-family="monospace">10 angles</text>
+      </svg>
+    </div>
+    <div class="body"><span class="tag go">🟢 capture pipeline</span><h3>Multi-angle volumetric</h3>
+    <p>Volumetric capture from 10 calibrated angles — color + depth + calibration per view, fused to orbit a subject from any direction.</p></div>
+  </div>
+
+  <div class="card">
+    <div class="media" style="display:flex;align-items:center;justify-content:center;color:#9a9aa6;font-size:12px;text-align:center;padding:14px">cut a subject out → standalone 3D object · on-device playback</div>
+    <div class="body"><span class="tag soon">🟡 in progress</span><h3>Element extraction + on-device</h3>
+    <p>Lift a person or object out of the background into a standalone editable 3D element; render captured worlds in real time on a phone.</p></div>
+  </div>
+
+</div>
+
+<footer>XRAI · spatial capture demos · built with three.js, Gaussian splatting, and <a href="https://rerun.io" style="color:#5a5a66">Rerun</a> (open source).</footer>
+</body>
+</html>
