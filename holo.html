@@ -48,7 +48,7 @@
   <label class="file" title="Point size">size <input type="range" id="size" min="1" max="12" value="4" style="width:80px;vertical-align:middle" /></label>
 </div>
 
-<div class="hud" id="status">drag a <b>Metavido / RGBD</b> .mp4 anywhere · or watch the test pattern</div>
+<div class="hud" id="status">drop / open any <b>RGBD .mp4</b> (layout auto-detected) · <b>?src=</b>URL deep-links a hosted capture · or watch the test pattern</div>
 <div id="drop">drop Metavido RGBD video</div>
 
 <script type="module">
@@ -85,6 +85,11 @@ const LAYOUTS = ['metavido','horizontal','vertical'];
 let paused = false;
 const status = (h) => document.getElementById('status').innerHTML = h;
 const sub = (t) => document.getElementById('sub').textContent = t;
+function setLayout(l){ layout = l; document.getElementById('layout-v').textContent = l; }
+// Guess SBS packing from aspect: wide→side-by-side, tall→stacked, else Keijiro quadrant.
+function autoLayout(vw, vh){ const a = vw / vh; return a > 2.2 ? 'horizontal' : a < 0.8 ? 'vertical' : 'metavido'; }
+let layoutLocked = false;   // a manual toggle / ?layout= pins the choice for this clip
+let taintWarned = false;    // one-shot cross-origin guard
 
 // --- synthetic: a breathing depth sphere + radial color, hue-encoded to match the shader ---
 const depthBuf = new Uint8Array(W*H*4), colorBuf = new Uint8Array(W*H*4);
@@ -132,19 +137,32 @@ function renderVideoFrame(){
     dRect={x:0,y:hh,w:hw,h:hh};
   } else if(layout==='vertical'){ const hh=vh>>1; dRect={x:0,y:0,w:vw,h:hh}; cRect={x:0,y:hh,w:vw,h:hh}; }
   else { const hw=vw>>1; dRect={x:0,y:0,w:hw,h:vh}; cRect={x:hw,y:0,w:hw,h:vh}; }
-  sctx.drawImage(videoEl, dRect.x,dRect.y,dRect.w,dRect.h, 0,0,W,H);
-  cloud.updateDepth(new Uint8Array(sctx.getImageData(0,0,W,H).data.buffer), W, H);
-  sctx.drawImage(videoEl, cRect.x,cRect.y,cRect.w,cRect.h, 0,0,W,H);
-  cloud.updateColor(new Uint8Array(sctx.getImageData(0,0,W,H).data.buffer), W, H);
+  try {
+    sctx.drawImage(videoEl, dRect.x,dRect.y,dRect.w,dRect.h, 0,0,W,H);
+    cloud.updateDepth(new Uint8Array(sctx.getImageData(0,0,W,H).data.buffer), W, H);
+    sctx.drawImage(videoEl, cRect.x,cRect.y,cRect.w,cRect.h, 0,0,W,H);
+    cloud.updateColor(new Uint8Array(sctx.getImageData(0,0,W,H).data.buffer), W, H);
+  } catch (err) {
+    // SecurityError: a cross-origin video with no CORS headers taints the canvas.
+    if (!taintWarned) { taintWarned = true;
+      status(`<b>cross-origin video blocked</b> · host must send <code>Access-Control-Allow-Origin</code>, or download &amp; drop the file`); }
+  }
 }
 
-function loadVideo(src, label){
+function loadVideo(src, label, forceLayout){
   if(videoEl){ try{ videoEl.pause(); videoEl.remove(); }catch{} }
+  taintWarned = false;
+  layoutLocked = false;                       // each new clip re-auto-detects unless pinned
   videoEl = document.createElement('video');
   videoEl.src = src; videoEl.loop = true; videoEl.muted = true; videoEl.playsInline = true; videoEl.crossOrigin='anonymous';
+  videoEl.onerror = ()=> status(`<b>load failed</b> · ${label} · check the URL / CORS, or download &amp; drop the file`);
+  videoEl.onloadedmetadata = ()=>{
+    if(forceLayout && LAYOUTS.includes(forceLayout)){ setLayout(forceLayout); layoutLocked = true; }
+    else { setLayout(autoLayout(videoEl.videoWidth, videoEl.videoHeight)); }
+  };
   videoEl.play().then(()=>{ mode='video'; document.getElementById('btn-synth').setAttribute('aria-pressed','false');
     sub(`Metavido RGBD · ${label} · ${videoEl.videoWidth}×${videoEl.videoHeight}`);
-    status(`playing <b>${label}</b> · ${layout} SBS · ${videoEl.videoWidth}×${videoEl.videoHeight} → ${W}×${H} cloud`);
+    status(`playing <b>${label}</b> · ${layout} SBS${layoutLocked?' (pinned)':' (auto)'} · ${videoEl.videoWidth}×${videoEl.videoHeight} → ${W}×${H} cloud`);
   }).catch(e=> status(`<b>play failed</b> · ${e.message} (try the layout toggle)`));
 }
 
@@ -152,8 +170,8 @@ function loadVideo(src, label){
 document.getElementById('btn-synth').onclick = (e)=>{ mode='synth'; e.target.setAttribute('aria-pressed','true');
   if(videoEl){ try{videoEl.pause();}catch{} } sub('Metavido RGBD → point-cloud · synthetic test pattern');
   status('synthetic RGBD test pattern · proves the decode pipeline with no asset'); };
-document.getElementById('seg-layout').onclick = ()=>{ layout = LAYOUTS[(LAYOUTS.indexOf(layout)+1)%LAYOUTS.length];
-  document.getElementById('layout-v').textContent = layout; };
+document.getElementById('seg-layout').onclick = ()=>{ layoutLocked = true;
+  setLayout(LAYOUTS[(LAYOUTS.indexOf(layout)+1)%LAYOUTS.length]); };
 document.getElementById('btn-pause').onclick = (e)=>{ paused=!paused; e.target.textContent = paused?'▶ play':'⏸ pause';
   if(videoEl){ paused?videoEl.pause():videoEl.play(); } };
 document.getElementById('size').oninput = (e)=> cloud.setPointSize(+e.target.value);
@@ -163,8 +181,9 @@ addEventListener('dragover', e=>{ e.preventDefault(); drop.classList.add('show')
 addEventListener('dragleave', e=>{ if(e.relatedTarget===null) drop.classList.remove('show'); });
 addEventListener('drop', e=>{ e.preventDefault(); drop.classList.remove('show');
   const f=[...e.dataTransfer.files].find(f=>f.type.startsWith('video/')); if(f) loadVideo(URL.createObjectURL(f), f.name); });
-// ?src= deep link (e.g. a hosted Metavido capture)
-const src = new URLSearchParams(location.search).get('src'); if(src) loadVideo(src, src.split('/').pop());
+// ?src= deep link (e.g. a hosted Metavido capture) · optional ?layout=metavido|horizontal|vertical
+const q = new URLSearchParams(location.search);
+const src = q.get('src'); if(src) loadVideo(src, decodeURIComponent(src.split('/').pop()||'capture'), q.get('layout'));
 
 // ── loop ──────────────────────────────────────────────────────────────────────
 function frame(t){
