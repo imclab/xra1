@@ -611,11 +611,13 @@
       if (isOn) {
         if (live.disable) await live.disable();
         $('btn-live').setAttribute('aria-pressed', 'false');
+        document.getElementById('room-qr-card')?.remove();
       } else {
         await live.enable({ publishCamera: false });
         $('btn-live').setAttribute('aria-pressed', 'true');
         $('room-id').textContent = live.roomId || '—';
         $('pill-room').style.display = '';
+        live._showRoomQR(location.href); // scan-to-join card for a 2nd device (e.g. AVP Safari)
       }
     });
     $('btn-holo').addEventListener('click', async () => {

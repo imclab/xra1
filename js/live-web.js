@@ -30,6 +30,8 @@
 //   • Record3D → Portals — MetavidoLiveARKit/LiveARKitFeeder.cs (iOS client)
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { renderRoomQR } from './room-qr.js';
+
 const DEFAULT_LK_URL = 'wss://portals-dev.livekit.cloud';
 const LK_CLIENT_CDN = 'https://esm.sh/livekit-client@2.7.0';
 
@@ -113,6 +115,7 @@ export class Live {
       setRoomInURL(this.roomId);
     }
     const url = location.href;
+    this._showRoomQR(url); // scan-to-join card (esp. for AVP Safari); silent offline
     try {
       if (navigator.share) {
         await navigator.share({ title: 'xrai live session', text: 'join my xrai hologram room', url });
@@ -124,6 +127,39 @@ export class Live {
       prompt('copy this invite URL:', url);
     }
     return this.roomId;
+  }
+
+  // Pop a dismissible scan-to-join QR for the room URL. Bonus on top of the
+  // share/clipboard link — lets a second device (e.g. Vision Pro Safari) join
+  // without typing. Silent no-op when offline (qrcode CDN unreachable).
+  async _showRoomQR(url) {
+    if (typeof document === 'undefined') return;
+    let card = document.getElementById('room-qr-card');
+    if (!card) {
+      card = document.createElement('aside');
+      card.id = 'room-qr-card';
+      card.title = 'scan to join — tap to dismiss';
+      Object.assign(card.style, {
+        position: 'fixed', bottom: '40px', right: '40px', zIndex: '16',
+        padding: '12px', background: '#fff', border: '1px solid rgba(247,255,168,0.6)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+        cursor: 'pointer', pointerEvents: 'auto',
+      });
+      card.addEventListener('click', () => card.remove());
+      document.body.appendChild(card);
+    }
+    const qrBox = document.createElement('div');
+    card.innerHTML = '';
+    card.appendChild(qrBox);
+    const label = document.createElement('div');
+    label.textContent = `scan · room ${this.roomId}`;
+    Object.assign(label.style, {
+      font: '9px "JetBrains Mono", monospace', color: '#000',
+      letterSpacing: '0.14em', textTransform: 'uppercase',
+    });
+    card.appendChild(label);
+    const ok = await renderRoomQR(qrBox, url, { size: 120 });
+    if (!ok) card.remove(); // offline — share/clipboard link already covers the join
   }
 
   // ─── Connect flow — auto-token or paste ───────────────────────────────────
