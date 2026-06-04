@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>XRAI — demos hub</title>
+<meta name="description" content="Every XRAI web demo in one place — viewer, telepresence, hologram playback, capture, replay."/>
+<style>
+  :root { color-scheme:dark;
+    --bg:#000; --fg:#fff; --muted:#666; --border:rgba(255,255,255,.08);
+    --accent:#F7FFA8; --secondary:#A8A8FF; --surf:#0b0b0b; --live:#2ecc71; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--bg); color:var(--fg);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif; min-height:100%; }
+  .wrap { max-width:960px; margin:0 auto; padding:54px 22px 90px; }
+  .kicker { color:var(--accent); letter-spacing:3px; font-size:11px; text-transform:uppercase; }
+  h1 { font-size:32px; margin:8px 0 0; font-weight:600; }
+  .sub { color:var(--muted); margin:10px 0 36px; max-width:640px; }
+  .sub b { color:var(--secondary); font-weight:500; }
+  h2 { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:40px 0 14px; }
+  .hero { border:1px solid var(--border); border-radius:16px; padding:22px;
+    background:linear-gradient(135deg, rgba(247,255,168,.05), rgba(168,168,255,.05)); }
+  .ex { display:flex; flex-direction:column; text-decoration:none; color:var(--fg);
+    background:#080808; border:1px solid var(--border); border-radius:10px; padding:12px 15px; margin:8px 0; transition:.15s; }
+  .ex:hover { border-color:var(--accent); }
+  .ex i { color:var(--muted); font-style:normal; font-size:12px; margin-top:2px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:14px; }
+  a.card { display:block; text-decoration:none; color:var(--fg); background:var(--surf);
+    border:1px solid var(--border); border-radius:13px; padding:18px; transition:.15s; }
+  a.card:hover { border-color:var(--secondary); transform:translateY(-2px); }
+  .card .t { font-weight:600; }
+  .card .d { color:var(--muted); font-size:13px; margin-top:5px; }
+  .tag { display:inline-block; font-size:10px; letter-spacing:.5px; text-transform:uppercase;
+    padding:2px 8px; border-radius:20px; margin-top:11px; border:1px solid var(--border); color:var(--muted); }
+  .tag.live { color:var(--live); border-color:rgba(46,204,113,.4); }
+  footer { color:var(--muted); font-size:12.5px; margin-top:48px; border-top:1px solid var(--border); padding-top:16px; }
+  footer a { color:var(--secondary); }
+  code { background:#0b0b0b; border:1px solid var(--border); border-radius:5px; padding:1px 6px; font-size:12px; }
+</style></head>
+<body><div class="wrap">
+
+  <div class="kicker">xra1 · spatial intelligence</div>
+  <h1>XRAI — demos hub</h1>
+  <p class="sub">Every XRAI web demo in one place. The same <code>.xrai</code> loader runs here and in the <b>Portals iOS app</b> — a scene shared from the app opens here from an identical <code>#scene=</code> link, and back.</p>
+
+  <h2>★ Round-trip — same loader as the Portals app</h2>
+  <div class="hero">
+      <a class="ex" href="viewer.html#scene=ewogICJ4cmFpX3ZlcnNpb24iOiAiMS4wIiwKICAiaWQiOiAiMDAwMDAwMDAtMDAwMC00MDAwLWEwMDAtMDAwMDAwMDAwMDAxIiwKICAiY3JlYXRlZF9hdCI6ICIyMDI2LTA0LTIyVDEyOjAwOjAwWiIsCiAgImF1dGhvciI6IHsidHlwZSI6ICJodW1hbiIsICJpZCI6ICJleGFtcGxlIn0sCiAgIm9yaWdpbiI6IHsiYXBwIjogImV4YW1wbGUiLCAidmVyc2lvbiI6ICIxLjAiLCAic2NlbmUiOiAibWluaW1hbCJ9LAogICJzY2VuZSI6IHsKICAgICJhbmNob3JzIjogW10sCiAgICAiZW50aXRpZXMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAiY3ViZV8xIiwKICAgICAgICAidHlwZSI6ICJvYmplY3QucHJpbWl0aXZlIiwKICAgICAgICAibW9kZWxfaWQiOiAwLAogICAgICAgICJ0cmFuc2Zvcm0iOiB7CiAgICAgICAgICAicG9zaXRpb24iOiBbMCwgMC4yNSwgLTEuNV0sCiAgICAgICAgICAicm90YXRpb24iOiBbMCwgMCwgMCwgMV0sCiAgICAgICAgICAic2NhbGUiOiBbMC4yLCAwLjIsIDAuMl0KICAgICAgICB9LAogICAgICAgICJtYXRlcmlhbCI6IHsiY29sb3IiOiAiY3lhbiIsICJwcmVzZXQiOiAibmVvbiJ9CiAgICAgIH0KICAgIF0sCiAgICAicmVsYXRpb25zIjogW10sCiAgICAiZXZlbnRzIjogW10KICB9Cn0K">▶ Minimal scene<i>open in viewer · same #scene= link the app emits</i></a>
+      <a class="ex" href="viewer.html#scene=ewogICJ4cmFpX3ZlcnNpb24iOiAiMS4wIiwKICAiaWQiOiAiMDAwMDAwMDAtMDAwMC00MDAwLWEwMDAtMDAwMDAwMDAwMDA0IiwKICAiY3JlYXRlZF9hdCI6ICIyMDI2LTA0LTIyVDEyOjE1OjAwWiIsCiAgImF1dGhvciI6IHsidHlwZSI6ICJsbG0iLCAiaWQiOiAiY2xhdWRlLW9wdXMtNC03In0sCiAgIm9yaWdpbiI6IHsiYXBwIjogInBvcnRhbHMiLCAidmVyc2lvbiI6ICJ2NCIsICJzY2VuZSI6ICJTaW1wbGVBUiJ9LAogICJtZXRhZGF0YSI6IHsKICAgICJ2b2ljZV9wcm9tcHQiOiAic2hvdyBtZSBhIGhvbG9ncmFtIG9mIG15c2VsZiIsCiAgICAicHJlc2V0IjogImxpZmVsaWtlX2hvbG9ncmFtIgogIH0sCiAgInNjZW5lIjogewogICAgImFuY2hvcnMiOiBbCiAgICAgIHsiaWQiOiAiYW5jaG9yX3VzZXIiLCAidHlwZSI6ICJhci5jYW1lcmEiLCAibWV0YWRhdGEiOiB7ImZvbGxvdyI6ICJjYW1lcmEifX0KICAgIF0sCiAgICAiZW50aXRpZXMiOiBbCiAgICAgIHsKICAgICAgICAiaWQiOiAiaG9sb18xIiwKICAgICAgICAidHlwZSI6ICJvYmplY3QuaG9sb2dyYW0iLAogICAgICAgICJtb2RlbF9pZCI6IG51bGwsCiAgICAgICAgInRyYW5zZm9ybSI6IHsKICAgICAgICAgICJwb3NpdGlvbiI6IFswLCAwLCAtMC44XSwKICAgICAgICAgICJyb3RhdGlvbiI6IFswLCAwLCAwLCAxXSwKICAgICAgICAgICJzY2FsZSI6IFsxLCAxLCAxXQogICAgICAgIH0sCiAgICAgICAgImNvbXBvbmVudHMiOiBbCiAgICAgICAgICB7CiAgICAgICAgICAgICJ0eXBlIjogInZmeC5ob2xvZ3JhbSIsCiAgICAgICAgICAgICJwcm9wcyI6IHsKICAgICAgICAgICAgICAicHJlc2V0IjogImxpZmVsaWtlX2hvbG9ncmFtIiwKICAgICAgICAgICAgICAiaW50ZW5zaXR5IjogMC44NSwKICAgICAgICAgICAgICAiZGVwdGhfbWluIjogMC4zLAogICAgICAgICAgICAgICJkZXB0aF9tYXgiOiAzLjAsCiAgICAgICAgICAgICAgInF1YWxpdHkiOiAyCiAgICAgICAgICAgIH0KICAgICAgICAgIH0KICAgICAgICBdCiAgICAgIH0KICAgIF0sCiAgICAicmVsYXRpb25zIjogWwogICAgICB7ImlkIjogInJfdHJhY2tzIiwgInR5cGUiOiAidHJhY2tzIiwgImZyb20iOiAiaG9sb18xIiwgInRvIjogImFuY2hvcl91c2VyIiwgInByb3BzIjoge319CiAgICBdLAogICAgImV2ZW50cyI6IFtdCiAgfQp9Cg==">▶ Hologram<i>open in viewer · same #scene= link the app emits</i></a>
+      <a class="ex" href="viewer.html#scene=ewogICJ4cmFpIjogIjAuMSIsCiAgInRpdGxlIjogIkp1bmdsZSBTdHVkaW8gKEphcnZpcykiLAogICJiYXNlIjogImp1bmdsZV9zdHVkaW8uanBnIiwKICAiZ2VuZXJhdG9yIjogeyAicHJvbXB0IjogImEganVuZ2xlIHNjZW5lIGFuZCBzdG9yeSBlbWVyZ2luZyBpbiBhbiBhcnQgc3R1ZGlvLCB3YXJtIGR1c2siLCAibW9kZWwiOiAiZ2VtaW5pLTIuNS1mbGFzaCIsICJzZWVkIjogNDIgfSwKICAiZW1vdGlvbiI6IHsgImdsb2JhbCI6IHsgInZhbGVuY2UiOiAwLjcsICJhcm91c2FsIjogMC41IH0sICJtb29kIjogIndhcm0gd29uZGVyIiB9LAogICJhbWJpZW50IjogeyAiYmVkIjogImp1bmdsZSBkdXNrLCBkaXN0YW50IGJpcmRzLCBzb2Z0IGluc2VjdHMiLCAiZHJvbmUiOiB7ICJwaXRjaCI6ICJsb3ciLCAibW90aW9uIjogInNsb3ctc3dlbGwiIH0sICJzZWVkIjogNDIgfSwKICAiYmVhdHMiOiBbInN0dWRpbyIsICJmaXJzdCBncmVlbiIsICJjYW5vcHkiLCAiZmlyZWZsaWVzIiwgInNldHRsZSBpbnRvIGR1c2siXSwKICAiZG90cyI6IFsKICAgIHsgInV2IjogWzAuMzAsIDAuNjJdLCAiZCI6IDIuNSwgIm1vZCI6ICJ2aXNpb24iLCAibWF0IjogImxlYWYiLCAgICAgImVzc2VuY2UiOiAicm91Z2gtZ3JlZW4iLCAic2FsIjogMC44LCAiZW1vdGlvbiI6IDAuNyB9LAogICAgeyAidXYiOiBbMC43MiwgMC41NV0sICJkIjogMy4wLCAibW9kIjogInZpc2lvbiIsICJtYXQiOiAiYmFyayIsICAgICAiZXNzZW5jZSI6ICJkYXJrLXJvdWdoIiwgICJzYWwiOiAwLjcsICJlbW90aW9uIjogMC42IH0sCiAgICB7ICJ1diI6IFswLjUwLCAwLjQwXSwgImQiOiA0LjAsICJtb2QiOiAidmlzaW9uIiwgIm1hdCI6ICJjYW5vcHkiLCAgICJlc3NlbmNlIjogImx1c2giLCAgICAgICAgInNhbCI6IDAuNiwgImVtb3Rpb24iOiAwLjggfSwKICAgIHsgInV2IjogWzAuNDIsIDAuNzBdLCAiZCI6IDEuOCwgIm1vZCI6ICJzb3VuZCIsICAiZXNzZW5jZSI6ICJiaXJkLWNhbGwiLCAgImxvdWQiOiAwLjQsICJzYWwiOiAwLjcsICJlbW90aW9uIjogMC43IH0sCiAgICB7ICJ1diI6IFswLjYwLCAwLjMwXSwgImQiOiA1LjAsICJtb2QiOiAic21lbGwiLCAgImVzc2VuY2UiOiAid2V0LWVhcnRoIiwgICJzYWwiOiAwLjUsICJlbW90aW9uIjogMC42IH0KICBdLAogICJicmlkZ2UiOiBbCiAgICB7ICJ0eXBlIjogInNldF92aWJlIiwgInZpYmVUYWdzIjogWyJqdW5nbGUiLCAibHVzaCJdLCAibGlnaHRpbmdUaGVtZSI6ICJTdW5zZXQiIH0sCiAgICB7ICJ0eXBlIjogImZsb29yX3ZmeCIsICJlZmZlY3QiOiAiR3Jhc3MiLCAiZW5hYmxlZCI6IHRydWUgfSwKICAgIHsgInR5cGUiOiAiYWRkX29iamVjdCIsICJpZCI6ICJ0cmVlXzEiLCAibW9kZWxJZCI6IDAsICJwb3NpdGlvbiI6IFstMS40LCAwLCAtMi41XSwgInNjYWxlIjogWzAuMywgMS4yLCAwLjNdLCAiY29sb3IiOiAiIzJFNUQzNCIgfSwKICAgIHsgInR5cGUiOiAiYWRkX29iamVjdCIsICJpZCI6ICJ0cmVlXzIiLCAibW9kZWxJZCI6IDAsICJwb3NpdGlvbiI6IFsxLjUsIDAsIC0zXSwgInNjYWxlIjogWzAuMzUsIDEuNCwgMC4zNV0sICJjb2xvciI6ICIjMjc1MDJDIiB9LAogICAgeyAidHlwZSI6ICJhZGRfZW1pdHRlciIsICJpZCI6ICJmaXJlZmxpZXMiLCAicHJlc2V0IjogIkZpcmVmbGllcyIgfSwKICAgIHsgInR5cGUiOiAiYWRkX2VtaXR0ZXIiLCAiaWQiOiAibWlzdCIsICJwcmVzZXQiOiAiU21va2UiIH0KICBdCn0K">▶ Jungle Studio<i>open in viewer · same #scene= link the app emits</i></a>
+  </div>
+
+  <h2>Demos &amp; players</h2>
+  <div class="grid">
+    <a class="card" href="viewer.html"><div class="t">XRAI Viewer / Editor</div><div class="d">Force-graph scene viewer · decodes share links · telepresence</div><span class="tag live">live</span></a>
+    <a class="card" href="conf.html"><div class="t">Shared Hologram (conf)</div><div class="d">Multiplayer LiveKit room — open on two devices</div><span class="tag live">live</span></a>
+    <a class="card" href="holo.html"><div class="t">Metavido RGBD Hologram</div><div class="d">Recorded RGBD volumetric hologram playback</div><span class="tag live">live</span></a>
+    <a class="card" href="capture-demos.html"><div class="t">Spatial Capture Demos</div><div class="d">How holograms get captured → XRAI</div><span class="tag live">live</span></a>
+    <a class="card" href="replay.html"><div class="t">Session Replay</div><div class="d">X-ray replay of a spatial session</div><span class="tag live">live</span></a>
+    <a class="card" href="gsplat-test.html"><div class="t">Gaussian Splat Viewer</div><div class="d">Streaming splat test (WEB-05)</div><span class="tag lab">demo</span></a>
+    <a class="card" href="xrai-viewer.html"><div class="t">XRAI Instrument</div><div class="d">Sensory-seed instrument view</div><span class="tag lab">demo</span></a>
+    <a class="card" href="jarvis.html"><div class="t">jARvis</div><div class="d">Lightweight agent — edge / device / cloud</div><span class="tag lab">demo</span></a>
+    <a class="card" href="spatial-os.html"><div class="t">Spatial Intelligence OS</div><div class="d">The night-mode OS concept</div><span class="tag lab">demo</span></a>
+  </div>
+
+  <footer>
+    Full index of every page &amp; decoder → <a href="sitemap.html">sitemap</a>.
+    Round-trip parity locked by <code>xraiParity.test.ts</code> (Portals iOS ↔ web).
+  </footer>
+</div></body></html>
