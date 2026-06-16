@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portals RGBD Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: system-ui, sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    #status {
+      position: fixed; top: 12px; left: 12px;
+      color: #0f0; font-size: 13px; font-family: monospace;
+      background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 4px;
+      pointer-events: none; z-index: 10;
+    }
+    #controls {
+      position: fixed; bottom: 12px; left: 12px;
+      display: flex; gap: 8px; z-index: 10;
+    }
+    #controls button {
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 6px;
+      padding: 8px 16px; cursor: pointer; font-size: 13px;
+    }
+    #controls button:hover { background: rgba(255,255,255,0.25); }
+  </style>
+  <script type="module" crossorigin src="/xra1/rgbd/assets/index-BR81evFV.js"></script>
+  <link rel="modulepreload" crossorigin href="/xra1/rgbd/assets/livekit-client.esm-CfiAt10V.js">
+</head>
+<body>
+  <div id="status">Initializing...</div>
+  <div id="controls">
+    <button id="btn-webcam">Start Webcam</button>
+    <button id="btn-livekit">Join LiveKit Room</button>
+    <button id="btn-publish">Publish to Room</button>
+    <input id="quick-room" type="text" value="test-room" placeholder="room name"
+      style="padding:8px 12px; background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.3);
+      border-radius:6px; font-size:13px; width:120px;" />
+    <button id="btn-quick-join">Quick Join</button>
+    <button id="btn-quick-publish">Quick Publish</button>
+  </div>
+  <div id="lk-panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.9); border:1px solid rgba(255,255,255,0.3); border-radius:12px;
+    padding:24px; z-index:20; min-width:300px; color:#fff; font-family:monospace;">
+    <div style="margin-bottom:12px; font-size:15px; font-weight:600;">Join LiveKit Room</div>
+    <label style="font-size:12px; color:#888;">Server URL</label>
+    <input id="lk-url" type="text" value="wss://portals-dev.livekit.cloud"
+      style="display:block; width:100%; margin:4px 0 12px; padding:8px; background:#222; color:#fff; border:1px solid #444; border-radius:4px; font-size:13px;" />
+    <label style="font-size:12px; color:#888;">Token</label>
+    <input id="lk-token" type="text" placeholder="paste LiveKit JWT token"
+      style="display:block; width:100%; margin:4px 0 12px; padding:8px; background:#222; color:#fff; border:1px solid #444; border-radius:4px; font-size:13px;" />
+    <div style="display:flex; gap:8px;">
+      <button id="lk-connect" style="flex:1; padding:10px; background:#4CD964; color:#000; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Connect</button>
+      <button id="lk-cancel" style="flex:1; padding:10px; background:#333; color:#fff; border:1px solid #555; border-radius:6px; cursor:pointer;">Cancel</button>
+    </div>
+    <div id="lk-status" style="margin-top:12px; font-size:12px; color:#888;"></div>
+  </div>
+  <div id="pub-panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:rgba(0,0,0,0.9); border:1px solid rgba(255,255,255,0.3); border-radius:12px;
+    padding:24px; z-index:20; min-width:300px; color:#fff; font-family:monospace;">
+    <div style="margin-bottom:12px; font-size:15px; font-weight:600;">Publish RGBD Stream</div>
+    <label style="font-size:12px; color:#888;">Server URL</label>
+    <input id="pub-url" type="text" value="wss://portals-dev.livekit.cloud"
+      style="display:block; width:100%; margin:4px 0 12px; padding:8px; background:#222; color:#fff; border:1px solid #444; border-radius:4px; font-size:13px;" />
+    <label style="font-size:12px; color:#888;">Token</label>
+    <input id="pub-token" type="text" placeholder="paste LiveKit JWT token"
+      style="display:block; width:100%; margin:4px 0 12px; padding:8px; background:#222; color:#fff; border:1px solid #444; border-radius:4px; font-size:13px;" />
+    <div style="display:flex; gap:8px;">
+      <button id="pub-connect" style="flex:1; padding:10px; background:#007AFF; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Publish</button>
+      <button id="pub-cancel" style="flex:1; padding:10px; background:#333; color:#fff; border:1px solid #555; border-radius:6px; cursor:pointer;">Cancel</button>
+    </div>
+    <div id="pub-status" style="margin-top:12px; font-size:12px; color:#888;"></div>
+  </div>
+</body>
+</html>
