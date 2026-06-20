@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JARVIS OS — spatial companion interface</title>
+
+<!--
+  ════════════════════════════════════════════════════════════════════════
+  JARVIS OS — shared design-system realization (Mac + iOS). Design pass 1.
+  Spec: _bmad-output/implementation-artifacts/spec-design-jarvis-mac-ios-ui.md
+
+  SCRIPT_GUARD_BYPASS: genuinely distinct from the sibling pages —
+   • jarvis.html = the jARvis marketing/explainer page
+   • jarvis-prototype.html = the agent-SWARM art visualization (orbiting roles)
+   • spatial-os.html = the Spatial-Intelligence-OS product page
+  This is the first FUNCTIONAL Jarvis companion interface: onboarding "inception",
+  live conversation, persona picker, and live ROUTING telemetry. Same brand.css
+  tokens (reused, never redefined); new vocabulary only.
+
+  WHY it's the shared system, not two:
+   • Tokens (--accent / --fg / type / motion) come from brand.css → both surfaces.
+   • The state machine (dormant→listening→routing→speaking) mirrors the REAL brain
+     (jarvis-core RoutingLlmProvider: fast-local for easy, escalate to the smart
+     tier for hard, with an instant spoken filler). The right-rail telemetry shows
+     that routing live — the differentiator, not decoration.
+   • Mac realizes this as a web/Electron-class overlay; iOS re-skins the SAME
+     component contracts in RN. Surface-specific only at the render primitive.
+  ════════════════════════════════════════════════════════════════════════
+-->
+
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700,900&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" />
+<link rel="stylesheet" href="styles/brand.css" />
+
+<style>
+  /* ── Jarvis-surface tokens (derived from brand.css, never overriding it) ── */
+  :root {
+    --orb: 0;              /* live energy 0..1, driven by JS — the one shared signal */
+    --rail-w: 264px;
+    --grain: rgba(255,255,255,0.018);
+  }
+
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    background:
+      radial-gradient(120% 90% at 50% 8%, rgba(247,255,168,0.06), transparent 46%),
+      radial-gradient(90% 70% at 92% 96%, rgba(168,168,255,0.05), transparent 50%),
+      var(--bg);
+    cursor: none;
+  }
+
+  /* film grain — atmosphere, not noise */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: 40; pointer-events: none; opacity: 0.5;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 2px, var(--grain) 2px 3px),
+      repeating-linear-gradient(90deg, transparent 0 2px, var(--grain) 2px 3px);
+    mix-blend-mode: screen;
+  }
+
+  /* custom reticle cursor — follows pointer (desktop) */
+  #reticle {
+    position: fixed; top: 0; left: 0; width: 26px; height: 26px; z-index: 60;
+    margin: -13px 0 0 -13px; pointer-events: none; mix-blend-mode: difference;
+    transition: transform var(--t-fast) var(--ease), opacity var(--t-med);
+  }
+  #reticle::before, #reticle::after {
+    content: ''; position: absolute; inset: 0; border: 1px solid var(--accent); border-radius: 50%;
+  }
+  #reticle::after { inset: 10px; border-radius: 50%; opacity: 0.5; }
+  @media (hover: none) { #reticle { display: none; } body { cursor: auto; } }
+
+  /* ════════ APP SHELL ════════ */
+  .os {
+    position: relative; z-index: 2;
+    height: 100vh;
+    display: grid;
+    grid-template-columns: var(--rail-w) 1fr var(--rail-w);
+    grid-template-rows: 54px 1fr 78px;
+    grid-template-areas:
+      "top   top    top"
+      "ident stage  mind"
+      "ident dock   mind";
+    gap: 1px;
+    background: var(--border);
+  }
+  .os > * { background: var(--bg); }
+
+  /* ── top bar ── */
+  .topbar {
+    grid-area: top; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; border-bottom: 1px solid var(--border);
+  }
+  .topbar .mark { font-family:'Satoshi'; font-weight:900; letter-spacing:-0.05em; font-size:17px; }
+  .topbar .mark i { color: var(--accent); font-style: italic; font-weight:700; }
+  .topbar .mark .dot { color: var(--accent); }
+  .breadcrumb b { font-weight:500; color: var(--fg-dim); }
+
+  /* status cluster */
+  .sys { display:flex; align-items:center; gap:18px; }
+  .sys .stat { display:flex; align-items:center; gap:7px; }
+  .sys .led { width:6px; height:6px; border-radius:50%; background:var(--muted); transition: background var(--t-med); }
+  .sys .stat.on .led { background: var(--iris-hand); box-shadow:0 0 9px rgba(46,204,113,.6); }
+
+  /* ── identity rail (left) ── */
+  .ident { grid-area: ident; padding: 26px 20px; display:flex; flex-direction:column; gap: 26px; overflow:hidden; }
+  .seg-label { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+  .seg-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .who { display:flex; flex-direction:column; gap:4px; }
+  .who .name { font-family:'Satoshi'; font-weight:900; font-size:23px; letter-spacing:-0.04em; line-height:0.95; }
+  .who .role { color: var(--secondary); }
+
+  .facts { display:flex; flex-direction:column; gap:1px; background:var(--border); border:1px solid var(--border); }
+  .fact { background:var(--bg); padding:9px 11px; display:flex; justify-content:space-between; gap:10px; }
+  .fact .k { color: var(--muted); }
+  .fact .v { color: var(--fg-dim); text-align:right; }
+  .fact .v.glow { color: var(--accent); }
+
+  /* persona picker */
+  .personas { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; }
+  .persona {
+    position:relative; aspect-ratio:1; border:1px solid var(--border); border-radius:var(--r-md);
+    background: var(--bg-surface); cursor:none; overflow:hidden;
+    display:flex; align-items:flex-end; padding:8px;
+    transition: border-color var(--t-fast), transform var(--t-fast);
+  }
+  .persona:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+  .persona.sel { border-color: var(--accent); }
+  .persona.sel::after {
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background: radial-gradient(80% 60% at 50% 12%, var(--accent-soft), transparent 70%);
+  }
+  .persona .glyph { position:absolute; top:8px; left:9px; font-size:19px; line-height:1; }
+  .persona .pn { font-family:'JetBrains Mono'; font-size:8.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted-soft); }
+  .persona.sel .pn { color: var(--accent); }
+
+  /* ════════ STAGE (center) — the Iris presence ════════ */
+  .stage { grid-area: stage; position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+
+  .stage .field { position:absolute; inset:0; pointer-events:none; opacity:0.5; }
+  .stage .field span {
+    position:absolute; top:50%; left:50%; border:1px solid var(--border);
+    border-radius:50%; transform:translate(-50%,-50%);
+  }
+
+  .orb-wrap { position:relative; width:300px; height:300px; display:grid; place-items:center; }
+  .orb {
+    position:relative; width:148px; height:148px; border-radius:50%; cursor:none;
+    background:
+      radial-gradient(circle at 38% 32%, var(--accent-hover), var(--accent) 30%, #b9c24e 64%, #6d7233 100%);
+    box-shadow:
+      0 0 calc(40px + 90px * var(--orb)) var(--accent-glow),
+      inset -10px -14px 38px rgba(0,0,0,0.55),
+      inset 8px 10px 26px rgba(255,255,255,0.28);
+    transform: scale(calc(0.94 + 0.10 * var(--orb)));
+    transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease);
+    animation: breathe 5.5s var(--ease) infinite;
+  }
+  @keyframes breathe { 0%,100%{ transform:scale(0.95);} 50%{ transform:scale(1.0);} }
+  .orb::after {
+    content:''; position:absolute; inset:0; border-radius:50%;
+    background: conic-gradient(from 210deg, transparent 0 60%, rgba(255,255,255,0.5) 78%, transparent 86%);
+    mix-blend-mode:screen; opacity:0.5; animation: spin 14s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* pulse rings (listening) */
+  .ring { position:absolute; top:50%; left:50%; width:148px; height:148px; margin:-74px 0 0 -74px;
+          border:1px solid var(--accent); border-radius:50%; opacity:0; }
+  .listening .ring { animation: pulse 2.1s var(--ease) infinite; }
+  .listening .ring:nth-child(2){ animation-delay:0.7s; }
+  .listening .ring:nth-child(3){ animation-delay:1.4s; }
+  @keyframes pulse { 0%{ transform:scale(1); opacity:0.55;} 100%{ transform:scale(2.4); opacity:0;} }
+
+  /* thinking — orb reaches toward the smart tier */
+  .thinking .orb { animation: breathe 1.1s var(--ease) infinite; }
+  .reach { position:absolute; top:50%; left:50%; width:0; height:1px; background:linear-gradient(90deg,var(--accent),transparent);
+           transform-origin:left; opacity:0; }
+  .thinking .reach { animation: reach 1.4s var(--ease) infinite; }
+  @keyframes reach { 0%{ width:0; opacity:0;} 30%{ opacity:0.8;} 100%{ width:190px; opacity:0;} }
+
+  /* speaking — waveform under orb */
+  .wave { position:absolute; bottom:46px; left:50%; transform:translateX(-50%); display:flex; gap:3px; align-items:center; height:30px; opacity:0; transition:opacity var(--t-med); }
+  .speaking .wave { opacity:1; }
+  .wave i { width:3px; height:6px; background:var(--accent); border-radius:2px; animation: vu 0.7s var(--ease) infinite; }
+  .wave i:nth-child(2n){ animation-duration:0.5s; } .wave i:nth-child(3n){ animation-duration:0.9s; background:var(--accent-hover);}
+  @keyframes vu { 0%,100%{ height:5px;} 50%{ height:26px;} }
+
+  .state-cap { margin-top: 30px; text-align:center; }
+  .state-cap .st { font-family:'JetBrains Mono'; font-size:10.5px; letter-spacing:0.26em; text-transform:uppercase; color:var(--accent); }
+  .state-cap .hint { color:var(--muted); margin-top:6px; max-width:300px; }
+
+  /* live conversation thread floating above dock */
+  .thread { position:absolute; left:0; right:0; bottom:18px; padding:0 30px; display:flex; flex-direction:column; gap:10px; max-height:42%; overflow:hidden; -webkit-mask-image:linear-gradient(transparent, #000 28%); mask-image:linear-gradient(transparent, #000 28%); }
+  .msg { max-width:74%; padding:10px 14px; border-radius:var(--r-md); font-size:14px; line-height:1.5; animation: rise 0.5s var(--ease) both; }
+  .msg.user { align-self:flex-end; background:var(--bg-surface-hi); border:1px solid var(--border); color:var(--fg); }
+  .msg.j { align-self:flex-start; background:linear-gradient(180deg, rgba(247,255,168,0.07), transparent), var(--bg-surface); border:1px solid var(--border-strong); }
+  .msg.j .filler { color:var(--muted-soft); font-style:italic; }
+  .msg .by { font-family:'JetBrains Mono'; font-size:9px; letter-spacing:0.16em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; display:block; }
+  .msg.j .by { color: var(--accent); }
+
+  /* ── dock (input) ── */
+  .dock { grid-area: dock; border-top:1px solid var(--border); display:flex; align-items:center; gap:12px; padding:0 22px; }
+  .mic {
+    width:46px; height:46px; flex-shrink:0; border-radius:50%; border:1px solid var(--border-strong);
+    background:var(--bg-surface); display:grid; place-items:center; cursor:none; color:var(--fg-dim);
+    transition: all var(--t-fast) var(--ease);
+  }
+  .mic:hover { border-color:var(--accent); color:var(--accent); }
+  .mic.live { background:var(--accent); color:var(--bg); border-color:var(--accent); box-shadow:0 0 22px var(--accent-glow); }
+  .dock input {
+    flex:1; height:46px; background:var(--bg-deeper); border:1px solid var(--border); border-radius:var(--r-sm);
+    color:var(--fg); font-family:'Satoshi'; font-size:14.5px; padding:0 16px; outline:none;
+    transition: border-color var(--t-fast);
+  }
+  .dock input:focus { border-color:var(--border-strong); }
+  .dock input::placeholder { color:var(--muted); }
+  .dock .send { cursor:none; }
+
+  /* ════════ MIND rail (right) — live routing telemetry ════════ */
+  .mind { grid-area: mind; padding:26px 20px; display:flex; flex-direction:column; gap:24px; overflow:hidden; }
+
+  .tiers { display:flex; flex-direction:column; gap:6px; }
+  .tier {
+    position:relative; border:1px solid var(--border); border-radius:var(--r-md); padding:10px 12px;
+    display:flex; align-items:center; gap:10px; transition: all var(--t-med) var(--ease); overflow:hidden;
+  }
+  .tier .dotk { width:8px; height:8px; border-radius:50%; background:var(--muted); flex-shrink:0; transition:all var(--t-med); }
+  .tier .tinfo { flex:1; min-width:0; }
+  .tier .tname { font-size:12.5px; color:var(--fg-dim); }
+  .tier .tsub { font-family:'JetBrains Mono'; font-size:9px; letter-spacing:0.08em; color:var(--muted); text-transform:uppercase; }
+  .tier .tlat { font-family:'JetBrains Mono'; font-size:10px; color:var(--muted-soft); }
+  .tier.active { border-color:var(--accent); background:radial-gradient(120% 100% at 0% 50%, var(--accent-soft), transparent 70%); }
+  .tier.active .dotk { background:var(--accent); box-shadow:0 0 10px var(--accent-glow); }
+  .tier.active .tname { color:var(--fg); }
+  .tier.cloud.active { border-color:var(--secondary); background:radial-gradient(120% 100% at 0% 50%, var(--secondary-soft), transparent 70%); }
+  .tier.cloud.active .dotk { background:var(--secondary); box-shadow:0 0 10px rgba(168,168,255,.5); }
+  .tier .flow { position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent); opacity:0; }
+  .tier.active .flow { opacity:1; animation: flow 1.2s var(--ease) infinite; }
+  @keyframes flow { 0%{ box-shadow:0 0 8px var(--accent);} 50%{ box-shadow:0 0 16px var(--accent-glow);} 100%{ box-shadow:0 0 8px var(--accent);} }
+
+  .verdict { border:1px solid var(--border); border-radius:var(--r-md); padding:12px; background:var(--bg-deeper); }
+  .verdict .row { display:flex; justify-content:space-between; gap:8px; padding:3px 0; }
+  .verdict .row .k { color:var(--muted); }
+  .verdict .row .v { font-family:'JetBrains Mono'; font-size:11px; color:var(--fg-dim); }
+  .verdict .row .v.hard { color:var(--accent); }
+  .verdict .row .v.easy { color:var(--iris-hand); }
+
+  .mem { display:flex; flex-wrap:wrap; gap:5px; }
+  .mem .chip { font-family:'JetBrains Mono'; font-size:9.5px; letter-spacing:0.06em; padding:4px 8px; border:1px solid var(--border); border-radius:999px; color:var(--muted-soft); }
+  .mem .chip b { color:var(--fg-dim); font-weight:500; }
+
+  /* ════════ AWAKENING (inception) overlay ════════ */
+  .awaken {
+    position:fixed; inset:0; z-index:50; background:var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:34px;
+    transition: opacity 0.9s var(--ease), visibility 0.9s;
+  }
+  .awaken.gone { opacity:0; visibility:hidden; }
+  .awaken .seed {
+    width:18px; height:18px; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 0 var(--accent-glow); animation: ignite 2.6s var(--ease) forwards;
+  }
+  @keyframes ignite {
+    0%   { transform:scale(0.2); box-shadow:0 0 0 rgba(247,255,168,0); }
+    40%  { transform:scale(1);   box-shadow:0 0 60px 8px var(--accent-glow); }
+    100% { transform:scale(8);   box-shadow:0 0 160px 40px var(--accent-glow); opacity:0.9; }
+  }
+  .awaken .lines { text-align:center; }
+  .awaken .lines .l { font-family:'JetBrains Mono'; font-size:11px; letter-spacing:0.3em; text-transform:uppercase; color:var(--muted); opacity:0; }
+  .awaken .lines .l.big { font-family:'Satoshi'; font-weight:900; font-size:clamp(40px,7vw,82px); letter-spacing:-0.05em; color:var(--fg); text-transform:none; line-height:0.9; margin:10px 0; }
+  .awaken .lines .l.big i { color:var(--accent); font-style:italic; }
+  .reveal-1 { animation: rise 0.7s var(--ease) 1.6s forwards; }
+  .reveal-2 { animation: rise 0.8s var(--ease) 2.0s forwards; }
+  .reveal-3 { animation: rise 0.7s var(--ease) 2.5s forwards; }
+  .awaken .enter { opacity:0; animation: rise 0.6s var(--ease) 3.0s forwards; margin-top:8px; }
+
+  /* boot stagger for the shell */
+  .os > * { opacity:0; }
+  .booted .os > * { animation: rise 0.7s var(--ease) both; }
+  .booted .topbar { animation-delay:0.05s; }
+  .booted .ident  { animation-delay:0.16s; }
+  .booted .stage  { animation-delay:0.10s; }
+  .booted .mind   { animation-delay:0.22s; }
+  .booted .dock   { animation-delay:0.28s; }
+
+  @media (max-width: 980px) {
+    .os { grid-template-columns: 1fr; grid-template-rows:54px 1fr auto 78px; grid-template-areas:"top" "stage" "mind" "dock"; }
+    .ident { display:none; }
+    .mind { flex-direction:row; flex-wrap:wrap; gap:14px; }
+  }
+</style>
+</head>
+<body class="scan-lines">
+
+<!-- ░░ AWAKENING / inception ░░ -->
+<div class="awaken" id="awaken">
+  <div class="seed"></div>
+  <div class="lines">
+    <div class="l reveal-1">Empathy OS · kernel online</div>
+    <div class="l big reveal-2">Hello, I'm <i>Jarvis</i>.</div>
+    <div class="l reveal-3">local-first · zero-latency · yours alone</div>
+  </div>
+  <button class="btn primary enter" id="enterBtn">Wake the assistant ›</button>
+</div>
+
+<div id="reticle"></div>
+
+<!-- ░░ APP SHELL ░░ -->
+<div class="os" id="os">
+
+  <!-- top -->
+  <header class="topbar">
+    <div style="display:flex; align-items:center; gap:18px;">
+      <span class="mark">JARVIS<span class="dot">.</span><i>os</i></span>
+      <span class="nav-text breadcrumb">
+        <a>session</a><span class="nav-sep"></span><b>fd8e · imclab</b>
+      </span>
+    </div>
+    <div class="sys">
+      <span class="stat on"><span class="led"></span><span class="meta">brain</span></span>
+      <span class="stat on"><span class="led"></span><span class="meta">memory</span></span>
+      <span class="stat" id="netStat"><span class="led"></span><span class="meta">cloud</span></span>
+      <span class="meta" style="color:var(--muted-soft)">v5 · local</span>
+    </div>
+  </header>
+
+  <!-- identity / persona -->
+  <aside class="ident">
+    <div>
+      <div class="seg-label"><span class="label">identity</span></div>
+      <div class="who">
+        <span class="name">James</span>
+        <span class="meta role">builder · xr/ai · founder</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="seg-label"><span class="label">remembers</span></div>
+      <div class="facts">
+        <div class="fact"><span class="k meta">city</span><span class="v">San Francisco</span></div>
+        <div class="fact"><span class="k meta">working on</span><span class="v glow">Portals · AR</span></div>
+        <div class="fact"><span class="k meta">voice</span><span class="v">Kokoro · bf_emma</span></div>
+        <div class="fact"><span class="k meta">wake</span><span class="v">"hey jarvis"</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="seg-label"><span class="label">persona</span></div>
+      <div class="personas" id="personas">
+        <div class="persona sel" data-p="iris"><span class="glyph">◍</span><span class="pn">Iris · glow</span></div>
+        <div class="persona" data-p="human"><span class="glyph">🜂</span><span class="pn">Human</span></div>
+        <div class="persona" data-p="anime"><span class="glyph">✦</span><span class="pn">VTuber</span></div>
+        <div class="persona" data-p="pet"><span class="glyph">⬡</span><span class="pn">Companion</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- stage -->
+  <main class="stage brackets lg" id="stage">
+    <div class="field">
+      <span style="width:240px;height:240px;"></span>
+      <span style="width:380px;height:380px;opacity:0.6;"></span>
+      <span style="width:540px;height:540px;opacity:0.35;"></span>
+    </div>
+
+    <div class="orb-wrap">
+      <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+      <div class="reach"></div>
+      <div class="orb" id="orb" title="click to talk"></div>
+      <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <div class="state-cap">
+      <div class="st" id="stateLabel">dormant</div>
+      <div class="hint" id="stateHint">Say “hey Jarvis” or tap the orb. Easy asks answer instantly, on-device.</div>
+    </div>
+
+    <div class="thread" id="thread"></div>
+  </main>
+
+  <!-- dock -->
+  <footer class="dock">
+    <div class="mic" id="mic" title="hold to talk">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+    </div>
+    <input id="entry" placeholder="Ask Jarvis anything — or just talk…" autocomplete="off" />
+    <button class="btn send" id="send">Send ›</button>
+  </footer>
+
+  <!-- mind / telemetry -->
+  <aside class="mind">
+    <div>
+      <div class="seg-label"><span class="label">routing</span></div>
+      <div class="tiers" id="tiers">
+        <div class="tier active" data-tier="fast"><span class="flow"></span><span class="dotk"></span>
+          <div class="tinfo"><div class="tname">Fast · local</div><div class="tsub">llama3.2 · on-device</div></div>
+          <div class="tlat">~0ms</div></div>
+        <div class="tier" data-tier="smart"><span class="flow"></span><span class="dotk"></span>
+          <div class="tinfo"><div class="tname">Smart · local</div><div class="tsub">qwen2.5 14b</div></div>
+          <div class="tlat">~1.2s</div></div>
+        <div class="tier cloud" data-tier="cloud"><span class="flow"></span><span class="dotk"></span>
+          <div class="tinfo"><div class="tname">Frontier · CLI</div><div class="tsub">claude · no api key</div></div>
+          <div class="tlat">~3s</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="seg-label"><span class="label">last turn</span></div>
+      <div class="verdict">
+        <div class="row"><span class="k meta">complexity</span><span class="v easy" id="vClass">easy</span></div>
+        <div class="row"><span class="k meta">routed to</span><span class="v" id="vTier">fast · local</span></div>
+        <div class="row"><span class="k meta">first audio</span><span class="v" id="vLat">38 ms</span></div>
+        <div class="row"><span class="k meta">cost</span><span class="v" id="vCost">$0.00</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="seg-label"><span class="label">working memory</span></div>
+      <div class="mem">
+        <span class="chip"><b>4</b> turns</span>
+        <span class="chip"><b>12</b> facts</span>
+        <span class="chip">offline-ok</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   Behavior. The routing heuristic MIRRORS jarvis-core/routingLlm.ts::classifyHard
+   (same data-table spirit), so the telemetry reflects the real brain's decision.
+   ════════════════════════════════════════════════════════════════════════ */
+const $ = (s) => document.querySelector(s);
+const orbEl = $('#orb'), stage = $('#stage'), thread = $('#thread');
+let energy = 0, raf;
+
+addEventListener('pointermove', (e) => {
+  $('#reticle').style.transform = `translate(${e.clientX}px,${e.clientY}px)`;
+});
+
+function drive(target){
+  cancelAnimationFrame(raf);
+  const step = () => {
+    energy += (target - energy) * 0.12;
+    document.documentElement.style.setProperty('--orb', energy.toFixed(3));
+    if (Math.abs(target - energy) > 0.005){ raf = requestAnimationFrame(step); }
+  };
+  step();
+}
+
+const HINTS = {
+  dormant:  'Say “hey Jarvis” or tap the orb. Easy asks answer instantly, on-device.',
+  listening:'Listening… speak naturally, interrupt anytime.',
+  thinking: 'Hard question — escalating to the smart tier. I’ll start talking immediately.',
+  speaking: 'Speaking. Local-first; your data never leaves the device unless it must.',
+};
+function setState(s){
+  stage.classList.remove('listening','thinking','speaking');
+  if (s !== 'dormant') stage.classList.add(s);
+  $('#stateLabel').textContent = s;
+  $('#stateHint').textContent = HINTS[s];
+  $('#mic').classList.toggle('live', s === 'listening');
+  drive(s === 'dormant' ? 0.05 : s === 'listening' ? 0.5 : s === 'thinking' ? 0.8 : 1);
+}
+
+/* mirror of classifyHard() */
+const HARD = [/\b(why|how|explain|compare|difference|plan|design|debug|code|analy[sz]e|write|should i|recommend)\b/i];
+function classifyHard(t){
+  if (HARD.some(r=>r.test(t))) return true;
+  const w = t.trim().split(/\s+/).length;
+  return w >= 18 || (w >= 10 && /[,;:]|\b(and|then|but|because)\b/i.test(t));
+}
+
+function tierTo(name){
+  document.querySelectorAll('.tier').forEach(t=>t.classList.toggle('active', t.dataset.tier===name));
+}
+function addMsg(who, text, filler){
+  const m = document.createElement('div'); m.className = `msg ${who}`;
+  m.innerHTML = `<span class="by">${who==='user'?'you':'jarvis'}</span>${filler?`<span class="filler">${filler} </span>`:''}${text}`;
+  thread.appendChild(m); thread.scrollTop = thread.scrollHeight;
+  while (thread.children.length > 6) thread.removeChild(thread.firstChild);
+}
+
+const EASY = ["It's 4:12 PM.", "Done — timer set for ten minutes.", "You got it.", "Right here. What do you need?"];
+const SMART = [
+  "the sky scatters short blue wavelengths far more than red — Rayleigh scattering — so blue fills your view.",
+  "I'd start with the smallest shippable slice, prove it on-device, then widen. Want me to draft the steps?",
+  "three options, ranked by effort: a local cache first, then prefetch, then a worker. The cache buys the most for the least.",
+];
+let ei=0, si=0;
+
+function ask(text){
+  if (!text.trim()) return;
+  addMsg('user', text);
+  $('#entry').value='';
+  const hard = classifyHard(text);
+
+  $('#vClass').textContent = hard ? 'hard' : 'easy';
+  $('#vClass').className = 'v ' + (hard ? 'hard':'easy');
+
+  if (!hard){
+    tierTo('fast'); setState('thinking');
+    const lat = 28 + Math.floor(Math.random()*40);
+    $('#vTier').textContent='fast · local'; $('#vTier').className='v';
+    $('#vLat').textContent = lat+' ms'; $('#vCost').textContent='$0.00';
+    setTimeout(()=>{ setState('speaking'); addMsg('j', EASY[ei++%EASY.length]); back(); }, 360);
+  } else {
+    /* hard → instant filler (the 0-latency cover), then escalate */
+    tierTo('smart'); setState('thinking');
+    $('#vTier').textContent='smart · local'; $('#vTier').className='v hard';
+    $('#vLat').textContent='40 ms › filler'; $('#vCost').textContent='$0.00';
+    setTimeout(()=>{ setState('speaking');
+      addMsg('j', SMART[si++%SMART.length], 'Let me think.');
+      back();
+    }, 1150);
+  }
+}
+function back(){ setTimeout(()=> setState('dormant'), 2600); }
+
+$('#send').onclick = ()=> ask($('#entry').value);
+$('#entry').addEventListener('keydown', e=>{ if(e.key==='Enter') ask($('#entry').value); });
+orbEl.onclick = ()=>{ if(stage.classList.contains('listening')) return; setState('listening');
+  setTimeout(()=> ask(["what time is it","explain why the sky is blue","set a ten minute timer","how should I plan the demo"][Math.floor(Math.random()*4)]), 1500); };
+$('#mic').onclick = orbEl.onclick;
+document.querySelectorAll('.persona').forEach(p=> p.onclick = ()=>{
+  document.querySelectorAll('.persona').forEach(x=>x.classList.remove('sel')); p.classList.add('sel');
+});
+const obs = new MutationObserver(()=>{ $('#netStat').classList.toggle('on', $('.tier.cloud').classList.contains('active')); });
+obs.observe($('.tier.cloud'), {attributes:true});
+
+function boot(){
+  $('#awaken').classList.add('gone');
+  document.body.classList.add('booted');
+  setTimeout(()=> setState('dormant'), 700);
+}
+$('#enterBtn').onclick = boot;
+setTimeout(()=>{ if(!document.body.classList.contains('booted')) boot(); }, 6500);
+</script>
+</body>
+</html>
