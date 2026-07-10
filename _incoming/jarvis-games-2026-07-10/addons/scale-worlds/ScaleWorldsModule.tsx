@@ -16,6 +16,7 @@ import {
   type Scale, type GameTemplate, type ScaledWorld, type Portal,
 } from "../../lib/scale/gameTemplate";
 import { generateCity, synthBands, buildingHeight, cityGenSelfTest, type Building } from "../../lib/scale/cityGen";
+import { OwnershipStamp } from "../provenance/OwnershipStamp";
 
 const hueColor = (h: number, l = 0.55) => new THREE.Color().setHSL(h, 1, l);
 
@@ -148,7 +149,7 @@ function GameScene({ world, playingRef, autopilotRef, onCollect, onNearest }:
 const btn = { padding: "8px 10px", borderRadius: 10, border: "1px solid #333", background: "#000", color: "#fff", cursor: "pointer", fontSize: 13 } as const;
 const sBtn = (on: boolean) => ({ ...btn, background: on ? "#1a1030" : "#000", borderColor: on ? "#6b3bd6" : "#333" });
 
-export function ScaleWorldsModule(_: { sync: SyncClient; syncState: SyncState; userId: string }) {
+export function ScaleWorldsModule({ userId }: { sync: SyncClient; syncState: SyncState; userId: string }) {
   const [template, setTemplate] = useState<GameTemplate>(() => sourceToTemplate("prompt", "cyber blades over neon tokyo"));
   const [scale, setScale] = useState<Scale>("table");
   const [score, setScore] = useState(0);
@@ -236,6 +237,8 @@ export function ScaleWorldsModule(_: { sync: SyncClient; syncState: SyncState; u
           they graduate to the <b>RN 3JS V5</b> + Unity composers unchanged (only this render layer is web-specific).
         </div>
       </div>
+
+      <OwnershipStamp userId={userId} asset={{ kind: "blades-game", template: { id: template.id, name: template.name, seed: template.seed, source: template.source } }} assetId={template.id} />
 
       {(tSelf.some((c) => !c.ok) || cSelf.some((c) => !c.ok)) && (
         <div style={{ fontSize: 11, color: "#ff6b6b" }}>{[...tSelf, ...cSelf].filter((c) => !c.ok).map((c) => `🔴 ${c.name}: ${c.detail}`).join(" · ")}</div>

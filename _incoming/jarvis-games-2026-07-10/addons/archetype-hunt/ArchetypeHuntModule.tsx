@@ -17,6 +17,7 @@ import {
   lsystemExpand, lsystemToSegments, PLANT_RULES, spiralPoints,
   makeLifeSeeded, lifeStep, growSelfTest, type Life,
 } from "../../lib/scale/growSystem";
+import { OwnershipStamp } from "../provenance/OwnershipStamp";
 
 const archColor = (id: ArchetypeId) => new THREE.Color().setHSL((ARCHETYPES.findIndex((a) => a.id === id) / 16 + 0.55) % 1, 1, 0.6);
 const SCALE_MUL: Record<Scale, number> = { table: 1, sidewalk: 1.5, urban: 2.3 };
@@ -106,7 +107,7 @@ function SystemScene({ id, angle, iters, variant, scale }: { id: ArchetypeId; an
 const btn = { padding: "8px 10px", borderRadius: 10, border: "1px solid #333", background: "#000", color: "#fff", cursor: "pointer", fontSize: 13 } as const;
 const on = (a: boolean) => ({ ...btn, background: a ? "#10241a" : "#000", borderColor: a ? "#3bd68a" : "#333" });
 
-export function ArchetypeHuntModule(_: { sync: SyncClient; syncState: SyncState; userId: string }) {
+export function ArchetypeHuntModule({ userId }: { sync: SyncClient; syncState: SyncState; userId: string }) {
   const [currentId, setCurrentId] = useState<ArchetypeId>("lsystem");
   const [scale, setScale] = useState<Scale>("table");
   const [angle, setAngle] = useState(25);
@@ -200,6 +201,8 @@ export function ArchetypeHuntModule(_: { sync: SyncClient; syncState: SyncState;
         on-device <b>MediaPipe</b> camera is the next increment. The archetype registry, prompt-ladder, and grow engines
         are pure TS — they graduate to the <b>RN 3JS V5</b> + Unity composers unchanged. Spec: <b>GAME_TEMPLATE_2_ARCHETYPE_HUNT.md</b>.
       </div>
+
+      <OwnershipStamp userId={userId} asset={{ kind: "archetype-system", archetype: currentId, params: { angle, iters, variant } }} assetId={`arch-${currentId}`} />
 
       {(aSelf.some((c) => !c.ok) || pSelf.some((c) => !c.ok) || gSelf.some((c) => !c.ok)) && (
         <div style={{ fontSize: 11, color: "#ff6b6b" }}>{[...aSelf, ...pSelf, ...gSelf].filter((c) => !c.ok).map((c) => `🔴 ${c.name}: ${c.detail}`).join(" · ")}</div>
