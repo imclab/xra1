@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>XRAI Splat Delivery</title>
+<style>
+  :root{color-scheme:dark}
+  html,body{margin:0;height:100%;background:#0b0d10;color:#e6e9ef;font:14px/1.5 ui-sans-serif,system-ui,sans-serif;overflow:hidden}
+  #stage{position:fixed;inset:0;z-index:0}
+  #panel{position:fixed;top:14px;left:14px;z-index:10;width:min(380px,92vw);background:rgba(12,15,20,.82);backdrop-filter:blur(8px);border:1px solid #222a35;border-radius:14px;padding:16px}
+  h1{font-size:16px;margin:0 0 4px}
+  .sub{color:#8a94a6;font-size:12px;margin:0 0 14px}
+  label{display:block;color:#8a94a6;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin:12px 0 4px}
+  input,textarea{width:100%;box-sizing:border-box;background:#0e1218;border:1px solid #2a3340;color:#e6e9ef;border-radius:8px;padding:8px;font:12px ui-monospace,monospace}
+  textarea{height:52px;resize:vertical}
+  .row{display:flex;gap:8px}
+  button{background:#2d6cf6;border:0;color:#fff;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer}
+  button.ghost{background:#1a2230}
+  #drop{border:1.5px dashed #333d4c;border-radius:10px;padding:14px;text-align:center;color:#9aa4b6;font-size:12px}
+  #hud{font:12px ui-monospace,monospace;color:#aab;margin-top:6px}
+  #out{display:none}
+  .pass{color:#37d67a}.fail{color:#ff6b6b}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="panel">
+  <h1>XRAI Splat Delivery</h1>
+  <p class="sub">Drop a Gaussian splat → clean, fast WebGPU-ready viewer → share link + embed. The delivery layer under Marble / Luma / Scaniverse / visionOS.</p>
+
+  <div id="drop">Drop <code>.ply / .splat / .ksplat</code> (your Marble/Luma export)</div>
+  <label>…or a hosted splat URL</label>
+  <div class="row"><input type="url" id="urlin" placeholder="https://…/scene.ply"><button id="go">Load</button></div>
+
+  <div id="out">
+    <div id="hud"></div>
+    <label>Share link</label>
+    <input id="share" readonly>
+    <label>Embed</label>
+    <textarea id="embed" readonly></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="dl">Download .xrai manifest</button>
+      <button class="ghost" id="copy">Copy link</button>
+    </div>
+    <p class="sub" id="localnote" style="display:none;margin-top:10px">Local file loaded — <b>host it</b> (cloud step) to get a real shareable link.</p>
+  </div>
+</div>
+
+<script type="module">
+import { makeViewer, loadScene, xraiManifest, shareLink, embedSnippet, isHosted, hasWebGPU } from './splat-app.mjs';
+
+const $ = s => document.querySelector(s);
+const out = $('#out'), hud = $('#hud');
+let viewer, current = { url:null, name:null, source:'upload' };
+
+function report(r){
+  const pass = r.ttff != null && r.ttff < 2000;
+  hud.innerHTML =
+    `WebGPU: ${hasWebGPU ? '🟢' : '🟡 WebGL'} · splats: ${r.count!=null?r.count.toLocaleString():'—'}<br>` +
+    `load+parse+GPU: ${r.load} ms · <b class="${pass?'pass':'fail'}">to-first-frame: ${r.ttff} ms ${pass?'🟢':'🔴'}</b>`;
+}
+function fillShare(){
+  const hosted = isHosted(current.url);
+  $('#localnote').style.display = hosted ? 'none' : 'block';
+  $('#share').value = hosted ? shareLink(current.url) : '(host the file to get a shareable link)';
+  $('#embed').value = hosted ? embedSnippet(current.url) : '(host the file to embed)';
+}
+
+async function load(url, name, source){
+  try{
+    current = { url, name, source };
+    out.style.display = 'block';
+    hud.textContent = 'loading…';
+    if (viewer) { try { viewer.dispose && viewer.dispose(); } catch {} }
+    viewer = makeViewer({ rootElement: $('#stage') });
+    const r = await loadScene(viewer, url, { progressive:true });
+    current.count = r.count;
+    report(r); fillShare();
+  }catch(e){ hud.innerHTML = '<span class="fail">ERROR: '+(e&&e.message||e)+'</span>'; console.error(e); }
+}
+
+$('#go').addEventListener('click', () => { const u = $('#urlin').value.trim(); if (u) load(u, u.split('/').pop(), 'url'); });
+$('#dl').addEventListener('click', () => {
+  const m = xraiManifest({ url: current.url, name: current.name, splatCount: current.count, source: current.source });
+  const blob = new Blob([JSON.stringify(m, null, 2)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = (current.name || 'scene') + '.xrai.json'; a.click();
+});
+$('#copy').addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText($('#share').value); });
+
+const drop = $('#drop');
+['dragover','drop'].forEach(ev => document.body.addEventListener(ev, e => e.preventDefault()));
+document.body.addEventListener('drop', e => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) load(URL.createObjectURL(f), f.name, 'upload');
+});
+
+const pre = new URLSearchParams(location.search).get('url');
+if (pre) { $('#urlin').value = pre; load(pre, pre.split('/').pop(), 'url'); }
+</script>
+</body>
+</html>

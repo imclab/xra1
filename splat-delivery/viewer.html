@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>XRAI splat viewer</title>
+<style>
+  html,body{margin:0;height:100%;background:#0b0d10;overflow:hidden}
+  #err{position:fixed;left:8px;bottom:8px;color:#ffbcbc;font:12px ui-monospace,monospace;display:none;max-width:90vw}
+  #brand{position:fixed;right:8px;bottom:8px;color:#5a6472;font:11px ui-monospace,monospace;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="err"></div>
+<a id="brand" href="../splat-delivery/" target="_blank" rel="noopener">XRAI</a>
+<script type="module">
+import { makeViewer, loadScene } from './splat-app.mjs';
+const err = document.getElementById('err');
+const show = e => { err.style.display='block'; err.textContent = 'ERROR: ' + (e && e.message ? e.message : e); console.error(e); };
+addEventListener('error', e => show(e.error || e.message));
+addEventListener('unhandledrejection', e => show(e.reason));
+try {
+  const url = new URLSearchParams(location.search).get('url');
+  if (!url) { show('no ?url= splat provided'); }
+  else { await loadScene(makeViewer(), url, { progressive: true }); }
+} catch (e) { show(e); }
+</script>
+</body>
+</html>
