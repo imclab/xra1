@@ -720,6 +720,29 @@
   </div>
 </div>
 
+<!-- First-load orientation — glance-legible "what + how", fades on first interaction (design pass 2026-07-11) -->
+<div id="intro-orient" style="position:fixed; top:11%; left:50%; transform:translateX(-50%); z-index:60; max-width:min(560px,90vw); text-align:center; padding:20px 26px; border-radius:16px; background:rgba(8,9,12,0.66); border:1px solid rgba(247,255,168,0.28); backdrop-filter:blur(16px) saturate(1.2); -webkit-backdrop-filter:blur(16px) saturate(1.2); box-shadow:0 10px 50px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05); transition:opacity 0.8s ease, transform 0.8s ease; pointer-events:none; font-family:'Avenir Next',system-ui,sans-serif;">
+  <div style="font-size:19px; font-weight:600; color:#FFFFFF; letter-spacing:-0.01em; line-height:1.25;">You're looking at <span style="color:#F7FFA8;">XRAI</span> — every file, idea &amp; scanned space as one living map.</div>
+  <div style="margin-top:11px; font-family:ui-monospace,'JetBrains Mono',monospace; font-size:12.5px; color:#CCCCCC; line-height:1.7;"><b style="color:#F7FFA8;">drag</b> to orbit · <b style="color:#F7FFA8;">scroll</b> to zoom · <b style="color:#F7FFA8;">click</b> any node · <b style="color:#F7FFA8;">/</b> to ask Jarvis</div>
+  <div style="margin-top:9px; font-size:11px; color:#888888; font-style:italic;">move to explore →</div>
+</div>
+<script>
+  (function () {
+    var el = document.getElementById('intro-orient');
+    if (!el) return;
+    var gone = false;
+    function dismiss() {
+      if (gone) return; gone = true;
+      el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(-8px)';
+      setTimeout(function () { if (el && el.remove) el.remove(); }, 850);
+    }
+    ['pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(function (ev) {
+      window.addEventListener(ev, dismiss, { once: true, passive: true });
+    });
+    setTimeout(dismiss, 7000);
+  })();
+</script>
+
 <aside class="panel" id="panel" aria-hidden="true">
   <button class="panel-close" onclick="closePanel()" aria-label="Close">×</button>
   <div id="panel-content">
