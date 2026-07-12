@@ -216,6 +216,7 @@
     import { on as busOn, emit as busEmit } from './js/world/bus.js';
     import { classifyMeta } from './js/intent/meta.js';
     import { Live } from './js/live-web.js';
+    import { Hands } from './js/hands-web.js';
     import { PeerHolograms } from './js/holo/peer-holograms.js';
     import { RGBDPublisher } from './js/holo/rgbd-publisher.js';
 
@@ -618,6 +619,13 @@
         $('room-id').textContent = live.roomId || '—';
         $('pill-room').style.display = '';
         live._showRoomQR(location.href); // scan-to-join card for a 2nd device (e.g. AVP Safari)
+        // Start local hand tracking (best-effort) so peers see your hands on the avatar.
+        try {
+          if (!window.__viewerHands) {
+            window.__viewerHands = new Hands({ Graph: null, showToast: toast });
+            await window.__viewerHands.enable();
+          }
+        } catch { toast('hands unavailable — sphere presence only'); }
       }
     });
     $('btn-holo').addEventListener('click', async () => {
@@ -644,6 +652,12 @@
     });
     document.addEventListener('live:track', (e) => peers.onTrack(e.detail || {}));
     document.addEventListener('live:track-end', (e) => peers.onTrackEnd(e.detail || {}));
+    // Local presence: broadcast your hand landmarks so peers render them on your avatar.
+    document.addEventListener('hands:frame', (e) => {
+      if (live?.active && live.sendData && e.detail?.hands?.length) {
+        live.sendData('xrai.hands', { kind: 'hands', hands: e.detail.hands });
+      }
+    });
 
     /* ─── WebXR (Vision Pro / Quest) ───────────────────────────────────── */
     async function detectXR() {
@@ -884,9 +898,19 @@
     });
 
     /* ─── Render loop ─────────────────────────────────────────────────── */
+    let _lastPoseT = 0;
     renderer.setAnimationLoop(() => {
       controls.update();
       peers.tick();
+      // Local presence: broadcast head pose so peers position your avatar/hologram (~10 Hz).
+      if (live?.active && live.sendData) {
+        const now = performance.now();
+        if (now - _lastPoseT > 100) {
+          _lastPoseT = now;
+          const { position: pp, quaternion: qq } = camera;
+          live.sendData('xrai.pose', { kind: 'pose', p: [pp.x, pp.y, pp.z], q: [qq.x, qq.y, qq.z, qq.w] });
+        }
+      }
       renderer.render(scene3, camera);
     });
 

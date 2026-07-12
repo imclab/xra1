@@ -31,6 +31,30 @@ class PeerHologram {
     this.group = new THREE.Group();
     this.group.name = `peer:${id}`;
     this.group.add(this.cloud.points);
+
+    // Lightweight presence avatar (operator's "glowing sphere + hands" mode) — the peer
+    // representation when they are NOT streaming an RGBD hologram (no video track). A glowing
+    // head sphere positioned by xrai.pose + a Points cloud of their hand landmarks (xrai.hands).
+    const GLOW = 0x6cf0ff;
+    this.head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.11, 24, 16),
+      new THREE.MeshBasicMaterial({ color: GLOW, transparent: true, opacity: 0.7 }),
+    );
+    this.headGlow = new THREE.PointLight(GLOW, 1.3, 1.4);
+    this.handPoints = new THREE.Points(
+      new THREE.BufferGeometry().setAttribute(
+        'position',
+        new THREE.BufferAttribute(new Float32Array(42 * 3), 3),
+      ),
+      new THREE.PointsMaterial({ color: GLOW, size: 0.028, transparent: true, opacity: 0.95, sizeAttenuation: true }),
+    );
+    this.handPoints.frustumCulled = false;
+    this.handPoints.geometry.setDrawRange(0, 0);
+    this.avatar = new THREE.Group();
+    this.avatar.name = `avatar:${id}`;
+    this.avatar.add(this.head, this.headGlow, this.handPoints);
+    this.group.add(this.avatar); // visible by default = instant presence before any data
+
     scene.add(this.group);
 
     this.videoEl = null;
@@ -45,12 +69,14 @@ class PeerHologram {
     el.style.display = 'none';
     document.body.appendChild(el);
     this.videoEl = el;
+    this.showAvatar(false); // full RGBD hologram takes over from the lightweight avatar
   }
 
   detachVideo() {
     if (!this.videoEl) return;
     try { this.videoEl.remove(); } catch {}
     this.videoEl = null;
+    this.showAvatar(true); // fall back to the glowing-sphere + hands avatar
   }
 
   applyPose(p, q) {
@@ -62,6 +88,28 @@ class PeerHologram {
     if (Array.isArray(meta?.rayParams) && meta.rayParams.length === 4) this.cloud.setRayParams(meta.rayParams);
     if (Array.isArray(meta?.depthRange) && meta.depthRange.length === 2) this.cloud.setDepthRange(meta.depthRange[0], meta.depthRange[1]);
   }
+
+  // hands = [ [ [x,y,z]×21 ], … ] normalized MediaPipe landmarks. Map into a ~0.5m box in
+  // front of the head sphere so peers see moving hands (placement refined once verified live).
+  applyHands(hands) {
+    const pos = this.handPoints.geometry.getAttribute('position');
+    const S = 0.5;
+    let n = 0;
+    for (const hand of hands || []) {
+      for (const lm of hand) {
+        if (n >= 42) break;
+        const lx = Array.isArray(lm) ? lm[0] : lm.x;
+        const ly = Array.isArray(lm) ? lm[1] : lm.y;
+        const lz = (Array.isArray(lm) ? lm[2] : lm.z) || 0;
+        pos.setXYZ(n++, (lx - 0.5) * S, (0.5 - ly) * S + 0.02, -0.3 - lz * S);
+      }
+    }
+    pos.needsUpdate = true;
+    this.handPoints.geometry.setDrawRange(0, n);
+  }
+
+  // Toggle the lightweight avatar (hidden once a full RGBD hologram video is streaming).
+  showAvatar(v) { this.avatar.visible = v; }
 
   tick(now) {
     if (!this.videoEl || this.videoEl.readyState < 2) return;
@@ -148,6 +196,9 @@ export class PeerHolograms {
         break;
       case 'rgbd-meta':
         peer.applyCameraParams(msg);
+        break;
+      case 'hands':
+        peer.applyHands(msg.hands);
         break;
       default:
         break;

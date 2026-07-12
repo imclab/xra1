@@ -183,6 +183,11 @@ export class Hands {
       return;
     }
     const hands = results.landmarks;
+    // Broadcast raw landmarks so telepresence peers can render remote hands (viewer.html
+    // publishes these as xrai.hands). Compact [x,y,z] arrays keep the DataChannel payload small.
+    document.dispatchEvent(new CustomEvent('hands:frame', {
+      detail: { hands: hands.map((h) => h.map((p) => [+p.x.toFixed(3), +p.y.toFixed(3), +(p.z || 0).toFixed(3)])) },
+    }));
     // Single-hand pinch → click + pointer move
     hands.forEach((hand, i) => {
       const thumb = hand[4];
