@@ -743,6 +743,15 @@
   })();
 </script>
 
+<!-- Search-to-focus — data-scientist power tool: type to highlight matching nodes, dim the rest,
+     focus the camera on a single match (design pass 2026-07-11). -->
+<div id="node-search" style="position:fixed; top:64px; right:20px; z-index:55; display:flex; align-items:center; gap:7px; padding:7px 11px; border-radius:11px; background:rgba(8,9,12,0.66); border:1px solid rgba(247,255,168,0.22); backdrop-filter:blur(14px) saturate(1.2); -webkit-backdrop-filter:blur(14px) saturate(1.2); box-shadow:0 6px 30px rgba(0,0,0,0.5); font-family:ui-monospace,'JetBrains Mono',monospace;">
+  <span style="color:#F7FFA8; font-size:12px; opacity:0.8;">⌕</span>
+  <input id="node-search-input" type="text" placeholder="search nodes…" autocomplete="off" spellcheck="false"
+    style="background:transparent; border:none; outline:none; color:#FFFFFF; font-family:inherit; font-size:12px; width:150px; letter-spacing:0.02em;" />
+  <span id="node-search-count" style="color:#888888; font-size:10.5px; min-width:30px; text-align:right;"></span>
+</div>
+
 <aside class="panel" id="panel" aria-hidden="true">
   <button class="panel-close" onclick="closePanel()" aria-label="Close">×</button>
   <div id="panel-content">
@@ -1352,6 +1361,56 @@ const Graph = window.Graph = ForceGraph3D()(document.getElementById('graph'))
 // Tighten link distance so glyph labels don't crush into each other
 Graph.d3Force('link').distance(44);
 Graph.d3Force('charge').strength(-120);
+
+/* ─── Search-to-focus (design pass) — highlight matches, dim rest, focus single match ─── */
+(function () {
+  const input = document.getElementById('node-search-input');
+  const countEl = document.getElementById('node-search-count');
+  if (!input) return;
+  // Set a node's three-object opacity (labels + glyph) — dim non-matches to ~0.12.
+  function setNodeDim(node, dim) {
+    const obj = node.__threeObj;
+    if (!obj) return;
+    obj.traverse(o => {
+      const m = o.material;
+      if (!m) return;
+      (Array.isArray(m) ? m : [m]).forEach(mm => {
+        if (mm.opacity === undefined) return;
+        if (mm.__baseOpacity === undefined) mm.__baseOpacity = mm.opacity;
+        mm.transparent = true;
+        mm.opacity = dim ? mm.__baseOpacity * 0.12 : mm.__baseOpacity;
+      });
+    });
+  }
+  function apply(q) {
+    const data = Graph.graphData();
+    const query = q.trim().toLowerCase();
+    if (!query) {
+      data.nodes.forEach(n => setNodeDim(n, false));
+      countEl.textContent = '';
+      return [];
+    }
+    const matches = data.nodes.filter(n =>
+      (n.label || '').toLowerCase().includes(query) || (n.group || '').toLowerCase().includes(query));
+    const matchSet = new Set(matches);
+    data.nodes.forEach(n => setNodeDim(n, !matchSet.has(n)));
+    countEl.textContent = matches.length ? `${matches.length}` : '0';
+    countEl.style.color = matches.length ? '#F7FFA8' : '#ff6b6b';
+    return matches;
+  }
+  let t;
+  input.addEventListener('input', () => { clearTimeout(t); t = setTimeout(() => apply(input.value), 120); });
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const m = apply(input.value);
+      if (m.length) {
+        const node = m[0];
+        const distRatio = 1 + 110 / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+        Graph.cameraPosition({ x: (node.x || 1) * distRatio, y: (node.y || 1) * distRatio, z: (node.z || 1) * distRatio }, node, 1200);
+      }
+    } else if (e.key === 'Escape') { input.value = ''; apply(''); input.blur(); }
+  });
+})();
 
 // Responsive sizing
 const fitGraph = () => Graph.width(window.innerWidth).height(window.innerHeight);
