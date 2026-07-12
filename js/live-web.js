@@ -193,12 +193,16 @@ export class Live {
     this.room.on(LK.RoomEvent.Connected, () => {
       this.showToast(`live · room ${this.roomId} — ${this.room.numParticipants} here`, 3200);
       this._buildTile();
+      this._renderPeers();
     });
     this.room.on(LK.RoomEvent.ParticipantConnected, (p) => {
       this.showToast(`+ ${p.identity}`, 2400);
+      this._renderPeers();
     });
     this.room.on(LK.RoomEvent.ParticipantDisconnected, (p) => {
       this.showToast(`- ${p.identity}`, 2000);
+      this._renderPeers();
+      document.dispatchEvent(new CustomEvent('live:track-end', { detail: { participant: p } }));
     });
     this.room.on(LK.RoomEvent.TrackSubscribed, (track, publication, participant) => {
       if (track.kind === 'video') this._attachVideo(track, participant);
@@ -282,6 +286,22 @@ export class Live {
   }
   _removeTile() {
     if (this.tile) { this.tile.remove(); this.tile = null; this.videoEl = null; }
+  }
+
+  // Sync the #peers roster with live room membership (the "see other users" list).
+  _renderPeers() {
+    const box = document.getElementById('peers');
+    if (!box || !this.room) return;
+    box.querySelectorAll('.peer:not(.self)').forEach(el => el.remove());
+    const remotes = this.room.remoteParticipants;
+    const list = remotes ? [...(remotes.values ? remotes.values() : remotes)] : [];
+    for (const p of list) {
+      const el = document.createElement('div');
+      el.className = 'peer';
+      el.dataset.identity = p.identity || 'peer';
+      el.textContent = p.identity || 'peer';
+      box.appendChild(el);
+    }
   }
   _attachVideo(track, participant) {
     if (!this.videoEl) this._buildTile();
