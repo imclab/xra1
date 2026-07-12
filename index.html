@@ -784,6 +784,10 @@
 <script type="module">
 import { marked } from 'https://esm.sh/marked@11.1.1';
 
+// Gate on the loader module above — cold-cache/headless loads otherwise race the
+// injected UMD script and throw "ForceGraph3D is not defined" at first use.
+if (!window.__forceGraphReady) await new Promise(r => addEventListener('force-graph-ready', r, { once: true }));
+
 // ------- Graph data: XRAI spec as its own hypergraph -------
 // Typed taxonomy. Every node has:
 //   type  : semantic class (file / concept / rfc / example / runtime / person / place / xrai-entity / structure)

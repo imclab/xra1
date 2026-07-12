@@ -1,0 +1,1069 @@
+{
+ "xrai_version": "1.0",
+ "id": "16-voice-rainforest",
+ "created_at": "2026-07-11T23:45:35.576Z",
+ "author": {
+  "type": "agent",
+  "id": "world-experiment@portals-v4"
+ },
+ "origin": {
+  "app": "portals",
+  "version": "v4",
+  "scene": "voice-world-drop"
+ },
+ "metadata": {
+  "_procgen": "mix",
+  "prompt": "Grow a lush rainforest around me with towering trees, creatures, fireflies and mist, then settle into a warm dusk",
+  "biome": "biome.rainforest",
+  "seed": 209459,
+  "vibe": {
+   "vibeTags": [
+    "jungle",
+    "lush",
+    "tropical"
+   ],
+   "lightingTheme": "Sunset"
+  },
+  "title": "Voice \u2192 Rainforest \u2014 procedural world drop",
+  "description": "Spoken world command \u2192 generateWorld \u2192 XRAI codon \u2192 renders in Unity (XraiAdapter) AND this WebGPU/3JS composer via loadXRAI. One codon, every engine.",
+  "status": "live",
+  "tags": [
+   "procgen",
+   "voice",
+   "rainforest",
+   "world-drop",
+   "_procgen:mix"
+  ]
+ },
+ "scene": {
+  "anchors": [],
+  "entities": [
+   {
+    "id": "biome_root",
+    "type": "object.hologram",
+    "transform": {
+     "position": [
+      0,
+      0,
+      0
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      1,
+      1,
+      1
+     ]
+    },
+    "metadata": {
+     "prompt": "Grow a lush rainforest around me with towering trees, creatures, fireflies and mist, then settle into a warm dusk",
+     "biome": "biome.rainforest"
+    }
+   },
+   {
+    "id": "floor",
+    "type": "object.emitter",
+    "material": {
+     "preset": "Grass"
+    },
+    "transform": {
+     "position": [
+      0,
+      0,
+      0
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      1,
+      1,
+      1
+     ]
+    },
+    "params": {
+     "_procgen": "particle"
+    }
+   },
+   {
+    "id": "emitter_4",
+    "type": "object.emitter",
+    "material": {
+     "preset": "Fireflies"
+    },
+    "transform": {
+     "position": [
+      0,
+      0.6,
+      -2
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      1,
+      1,
+      1
+     ]
+    },
+    "params": {
+     "_procgen": "particle"
+    }
+   },
+   {
+    "id": "emitter_5",
+    "type": "object.emitter",
+    "material": {
+     "preset": "BonfireClouds"
+    },
+    "transform": {
+     "position": [
+      0,
+      0.6,
+      -2
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      1,
+      1,
+      1
+     ]
+    },
+    "params": {
+     "_procgen": "particle"
+    }
+   },
+   {
+    "id": "plant_209459_0",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      -1.74,
+      0,
+      -2.58
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.22,
+      0.34,
+      0.22
+     ]
+    },
+    "material": {
+     "color": "#2E5D34"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_1",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      0.19,
+      0,
+      -4.16
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.16,
+      0.33,
+      0.16
+     ]
+    },
+    "material": {
+     "color": "#2E5D34"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_2",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      -2.51,
+      0,
+      -1.78
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.17,
+      0.27,
+      0.17
+     ]
+    },
+    "material": {
+     "color": "#2E5D34"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_3",
+    "type": "object.primitive",
+    "model_id": 2,
+    "transform": {
+     "position": [
+      1.68,
+      0,
+      -3.37
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.4,
+      0.67,
+      0.4
+     ]
+    },
+    "material": {
+     "color": "#4B7F3E"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_4",
+    "type": "object.primitive",
+    "model_id": 2,
+    "transform": {
+     "position": [
+      -1.87,
+      0,
+      -1.86
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.33,
+      0.5,
+      0.33
+     ]
+    },
+    "material": {
+     "color": "#3E7D3A"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_5",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      -1.75,
+      0,
+      -2.5
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.32,
+      0.38,
+      0.32
+     ]
+    },
+    "material": {
+     "color": "#2E5D34"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_6",
+    "type": "object.primitive",
+    "model_id": 2,
+    "transform": {
+     "position": [
+      -1.39,
+      0,
+      -3.39
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.33,
+      0.5,
+      0.33
+     ]
+    },
+    "material": {
+     "color": "#27502C"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_7",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      1.7,
+      0,
+      -4
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.36,
+      0.4,
+      0.36
+     ]
+    },
+    "material": {
+     "color": "#1F4A24"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_8",
+    "type": "object.primitive",
+    "model_id": 2,
+    "transform": {
+     "position": [
+      1.84,
+      0,
+      -3.8
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.19,
+      0.63,
+      0.19
+     ]
+    },
+    "material": {
+     "color": "#4B7F3E"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_9",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      -0.47,
+      0,
+      -4.3
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.2,
+      0.21,
+      0.2
+     ]
+    },
+    "material": {
+     "color": "#3E7D3A"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_10",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      -0.64,
+      0,
+      -2.5
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.36,
+      0.5,
+      0.36
+     ]
+    },
+    "material": {
+     "color": "#1F4A24"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_11",
+    "type": "object.primitive",
+    "model_id": 2,
+    "transform": {
+     "position": [
+      2.05,
+      0,
+      -4.12
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.24,
+      0.57,
+      0.24
+     ]
+    },
+    "material": {
+     "color": "#4B7F3E"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_12",
+    "type": "object.primitive",
+    "model_id": 2,
+    "transform": {
+     "position": [
+      -1.32,
+      0,
+      -2.87
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.39,
+      0.54,
+      0.39
+     ]
+    },
+    "material": {
+     "color": "#4B7F3E"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_13",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      -1.87,
+      0,
+      -2.61
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.28,
+      0.58,
+      0.28
+     ]
+    },
+    "material": {
+     "color": "#2E5D34"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "plant_209459_14",
+    "type": "object.primitive",
+    "model_id": 1,
+    "transform": {
+     "position": [
+      1.98,
+      0,
+      -2.89
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.15,
+      0.65,
+      0.15
+     ]
+    },
+    "material": {
+     "color": "#1F4A24"
+    },
+    "params": {
+     "_procgen": "voxel"
+    }
+   },
+   {
+    "id": "hero_0",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      1.49,
+      0,
+      -4.26
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.34,
+      2.07,
+      0.34
+     ]
+    },
+    "material": {
+     "color": "#3E7D3A"
+    },
+    "metadata": {
+     "search": "jungle tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_1",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      1.97,
+      0,
+      -2.46
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.27,
+      2.27,
+      0.27
+     ]
+    },
+    "material": {
+     "color": "#2E5D34"
+    },
+    "metadata": {
+     "search": "tropical tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_2",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      -2.37,
+      0,
+      -2.21
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.3,
+      1.8,
+      0.3
+     ]
+    },
+    "material": {
+     "color": "#3E7D3A"
+    },
+    "metadata": {
+     "search": "banana tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_3",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      1.84,
+      0,
+      -3.69
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.36,
+      1.81,
+      0.36
+     ]
+    },
+    "material": {
+     "color": "#4B7F3E"
+    },
+    "metadata": {
+     "search": "banana tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_4",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      1.47,
+      0,
+      -4.62
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.26,
+      1.46,
+      0.26
+     ]
+    },
+    "material": {
+     "color": "#27502C"
+    },
+    "metadata": {
+     "search": "palm tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_5",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      1.14,
+      0,
+      -1.75
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.42,
+      2.06,
+      0.42
+     ]
+    },
+    "material": {
+     "color": "#1F4A24"
+    },
+    "metadata": {
+     "search": "jungle tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_6",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      -0.34,
+      0,
+      -4.47
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.43,
+      1.44,
+      0.43
+     ]
+    },
+    "material": {
+     "color": "#4B7F3E"
+    },
+    "metadata": {
+     "search": "tropical tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_7",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      2,
+      0,
+      -2.84
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.49,
+      1.2,
+      0.49
+     ]
+    },
+    "material": {
+     "color": "#3E7D3A"
+    },
+    "metadata": {
+     "search": "jungle tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_8",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      1.7,
+      0,
+      -4.08
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.44,
+      2,
+      0.44
+     ]
+    },
+    "material": {
+     "color": "#27502C"
+    },
+    "metadata": {
+     "search": "kapok tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   },
+   {
+    "id": "hero_9",
+    "type": "object.glb",
+    "transform": {
+     "position": [
+      -2.36,
+      0,
+      -1.97
+     ],
+     "rotation": [
+      0,
+      0,
+      0,
+      1
+     ],
+     "scale": [
+      0.34,
+      1.14,
+      0.34
+     ]
+    },
+    "material": {
+     "color": "#2E5D34"
+    },
+    "metadata": {
+     "search": "tropical tree"
+    },
+    "params": {
+     "_procgen": "icosa"
+    }
+   }
+  ],
+  "relations": [
+   {
+    "id": "rel_floor",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "floor"
+   },
+   {
+    "id": "rel_emitter_4",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "emitter_4"
+   },
+   {
+    "id": "rel_emitter_5",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "emitter_5"
+   },
+   {
+    "id": "rel_plant_209459_0",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_0"
+   },
+   {
+    "id": "rel_plant_209459_1",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_1"
+   },
+   {
+    "id": "rel_plant_209459_2",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_2"
+   },
+   {
+    "id": "rel_plant_209459_3",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_3"
+   },
+   {
+    "id": "rel_plant_209459_4",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_4"
+   },
+   {
+    "id": "rel_plant_209459_5",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_5"
+   },
+   {
+    "id": "rel_plant_209459_6",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_6"
+   },
+   {
+    "id": "rel_plant_209459_7",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_7"
+   },
+   {
+    "id": "rel_plant_209459_8",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_8"
+   },
+   {
+    "id": "rel_plant_209459_9",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_9"
+   },
+   {
+    "id": "rel_plant_209459_10",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_10"
+   },
+   {
+    "id": "rel_plant_209459_11",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_11"
+   },
+   {
+    "id": "rel_plant_209459_12",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_12"
+   },
+   {
+    "id": "rel_plant_209459_13",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_13"
+   },
+   {
+    "id": "rel_plant_209459_14",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "plant_209459_14"
+   },
+   {
+    "id": "rel_hero_0",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_0"
+   },
+   {
+    "id": "rel_hero_1",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_1"
+   },
+   {
+    "id": "rel_hero_2",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_2"
+   },
+   {
+    "id": "rel_hero_3",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_3"
+   },
+   {
+    "id": "rel_hero_4",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_4"
+   },
+   {
+    "id": "rel_hero_5",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_5"
+   },
+   {
+    "id": "rel_hero_6",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_6"
+   },
+   {
+    "id": "rel_hero_7",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_7"
+   },
+   {
+    "id": "rel_hero_8",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_8"
+   },
+   {
+    "id": "rel_hero_9",
+    "type": "parent-of",
+    "from": "biome_root",
+    "to": "hero_9"
+   }
+  ],
+  "events": []
+ }
+}
