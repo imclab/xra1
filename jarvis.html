@@ -300,6 +300,7 @@
   <!-- ─── hero ─── -->
   <header class="hero rise d1">
     <div>
+      <a class="hero-founding" href="#jarvis-early-access">⚡ Founding Early Access — $19/mo →</a>
       <h1><span class="accent">jarvis</span>.<br>lean.<br>local‑first.
         <span class="mono">~400 LOC · SQLite · swappable backends · edge / device / cloud</span>
       </h1>
@@ -526,7 +527,93 @@
   </section>
 
   <!-- ─── footer ─── -->
-  <footer class="page-footer">
+  <section id="jarvis-early-access" class="jea">
+  <div class="jea-card">
+    <p class="jea-eyebrow">FOUNDING · EARLY ACCESS</p>
+    <h2 class="jea-title">Jarvis — your self-improving AI agent</h2>
+    <p class="jea-sub">
+      The advanced build of Jarvis: a self-improving agent that runs a local LLM in the loop,
+      learns from your work, and automates it. Founding members get in first, lock the founding
+      price for life, and shape the roadmap.
+    </p>
+    <ul class="jea-feats">
+      <li>Advanced Jarvis — the full self-improving agent, local-LLM in the loop</li>
+      <li>Early access to new capabilities before general release</li>
+      <li>Founding price locked for life · direct line to shape what ships next</li>
+    </ul>
+    <div class="jea-price">
+      <span class="jea-amount">$19</span>
+      <span class="jea-per">/ month · 7-day free trial · cancel anytime</span>
+    </div>
+    <a class="pill jea-cta" href="https://buy.stripe.com/test_eVqfZg7WB3N7erz2wsb7y00" rel="noopener">
+      ⚡ Claim Founding Access
+    </a>
+    <p class="jea-trust">Secure checkout via Stripe · no card charged during the trial</p>
+  </div>
+</section>
+
+<style>
+  /* Scoped to .jea — inherits xra1 tokens (--bg, --accent, --border…) if present,
+     with fallbacks so it also previews standalone. */
+  .hero-founding {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.16em;
+    color: var(--accent); text-decoration: none;
+    padding: 6px 13px; margin: 0 0 18px; border-radius: 999px;
+    border: 1px solid rgba(247,255,168,0.28); background: rgba(247,255,168,0.05);
+    transition: background .15s ease, border-color .15s ease, transform .15s ease;
+  }
+  .hero-founding:hover { background: rgba(247,255,168,0.12); border-color: var(--accent); transform: translateY(-1px); }
+  .jea {
+    --_accent: var(--accent, #F7FFA8);
+    --_border: var(--border-strong, rgba(255,255,255,0.18));
+    background: var(--bg, #000);
+    color: var(--brand, #fff);
+    padding: clamp(48px, 8vw, 96px) 20px;
+    display: flex; justify-content: center;
+    font-family: 'Satoshi', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .jea-card {
+    max-width: 560px; width: 100%;
+    border: 1px solid var(--_border);
+    border-radius: 20px;
+    padding: clamp(28px, 5vw, 44px);
+    background: rgba(255,255,255,0.02);
+    box-shadow: 0 0 60px -20px var(--accent-glow, rgba(247,255,168,0.35));
+    text-align: left;
+  }
+  .jea-eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.18em;
+    color: var(--_accent); margin: 0 0 14px;
+  }
+  .jea-title { font-size: clamp(24px, 4vw, 34px); line-height: 1.15; margin: 0 0 14px; font-weight: 600; }
+  .jea-sub { color: rgba(255,255,255,0.72); font-size: 16px; line-height: 1.6; margin: 0 0 22px; }
+  .jea-feats { list-style: none; padding: 0; margin: 0 0 26px; }
+  .jea-feats li {
+    position: relative; padding-left: 26px; margin-bottom: 12px;
+    color: rgba(255,255,255,0.86); font-size: 15px; line-height: 1.5;
+  }
+  .jea-feats li::before { content: '→'; position: absolute; left: 0; color: var(--_accent); }
+  .jea-price { display: flex; align-items: baseline; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
+  .jea-amount { font-size: 34px; font-weight: 700; }
+  .jea-per { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: rgba(255,255,255,0.55); }
+  .jea-cta {
+    display: inline-block; text-decoration: none; cursor: pointer;
+    background: var(--_accent); color: #000; font-weight: 600; font-size: 16px;
+    padding: 14px 28px; border-radius: 999px; border: 0;
+    transition: background .15s ease, transform .15s ease;
+  }
+  .jea-cta:hover { background: var(--accent-hover, #FDFFCC); transform: translateY(-1px); }
+  .jea-trust {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: rgba(255,255,255,0.45); margin: 16px 0 0;
+  }
+</style>
+
+
+<footer class="page-footer">
     <span>© 2026 · xra1.com/jARvis · MIT</span>
     <span><a href="index.html">graph</a> · <a href="landing.html">landing</a> · <a href="examples/README.md">examples</a> · <a href="jarvis/SOUL.md">SOUL</a> · <a href="MANIFESTO.md">manifesto</a> · <a href="https://github.com/imclab/xra1">repo</a></span>
   </footer>
