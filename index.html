@@ -131,6 +131,11 @@
   @media (max-width: 700px) {
     #scroll-compass { bottom: 20px; right: 20px; width: 56px; height: 56px; }
     .pcard { max-width: calc(100vw - 48px); padding: 18px 20px; }
+    /* Matrix rows must wrap rather than force the card wider than the screen. */
+    .pcard table.mx { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .pcard table.mx th:first-child, .pcard table.mx td:first-child { white-space: normal; min-width: 140px; }
+    /* WCAG 2.5.5: nav targets stay tappable even at the 10px mobile type scale. */
+    .topnav a, .topnav button, .topnav select, .topnav label { min-height: 44px; padding: 8px 10px; }
   }
   a { color: var(--fg); text-decoration: none; transition: color 0.15s; }
   a:hover { color: var(--accent); }

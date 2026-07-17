@@ -144,7 +144,7 @@ pre.snip .c{color:var(--mute-2)}
     <div class="actions">
       <a class="act" href="./mcp-server/">read MCP server docs</a>
       <a class="act amber" href="https://www.npmjs.com/package/@h3m/spatial-intelligence-mcp">npm package</a>
-      <a class="act" href="./rfcs/0012-decoder-contract.html">decoder contract (RFC 0012)</a>
+      <a class="act" href="./rfcs/0012-decoder-contract.md">decoder contract (RFC 0012)</a>
     </div>
   </section>
 
@@ -158,7 +158,7 @@ pre.snip .c{color:var(--mute-2)}
     <p>Render published 4D Gaussian datasets (DyNeRF / Plenoptic Video / D-NeRF / MEGA pretrained) live. Cross-platform: <code>gsplat-unity</code> (iOS app) + <code>GaussianSplats3D</code> (web) + <code>MetalSplatter</code> (visionOS). Niantic SPZ as interchange.</p>
     <div class="proto-grid">
       <div class="proto-cell"><h4>G1 · auto visual</h4><p>Unity Editor renders static splats today. 4D temporal sequencing untested headless.</p></div>
-      <div class="proto-cell"><h4>G2 · user step</h4><p>Awaits physical iPhone trip per <a href="../../docs/SHIP_READY_QUEUE_2026-05-02.md">device queue</a>.</p></div>
+      <div class="proto-cell"><h4>G2 · user step</h4><p>Awaits physical iPhone trip per the device queue.</p></div>
       <div class="proto-cell"><h4>G3 · publish</h4><p>Web wrapper waits on dataset selection + GaussianSplats3D wiring (~2 h).</p></div>
     </div>
     <div class="actions">
@@ -210,10 +210,10 @@ pre.snip .c{color:var(--mute-2)}
 
   <div class="note">
     <h3>How to promote a prototype to SHIP</h3>
-    <p>Each card flips from <span class="badge queued" style="font-size:.6rem">QUEUED</span> &rarr; <span class="badge partial" style="font-size:.6rem">PARTIAL</span> &rarr; <span class="badge ship" style="font-size:.6rem">SHIP</span> by closing all three gates documented in <a href="../../.claude/commands/ship-status.md"><code>/ship-status</code></a>:</p>
+    <p>Each card flips from <span class="badge queued" style="font-size:.6rem">QUEUED</span> &rarr; <span class="badge partial" style="font-size:.6rem">PARTIAL</span> &rarr; <span class="badge ship" style="font-size:.6rem">SHIP</span> by closing all three gates documented in <code>/ship-status</code>:</p>
     <ul>
       <li><strong style="color:var(--ph)">G1</strong> &mdash; an automated visual / Playwright test runs green and is part of the regression baseline.</li>
-      <li><strong style="color:var(--ph)">G2</strong> &mdash; a user has run the manual step test and recorded the confirmation in <a href="../../docs/SHIP_READY_QUEUE_2026-05-02.md"><code>SHIP_READY_QUEUE</code></a>.</li>
+      <li><strong style="color:var(--ph)">G2</strong> &mdash; a user has run the manual step test and recorded the confirmation in <code>SHIP_READY_QUEUE</code>.</li>
       <li><strong style="color:var(--ph)">G3</strong> &mdash; a build artifact is hosted (xra1 site, npm, app store, or GitHub release).</li>
     </ul>
     <p>Code-complete is not shipped. A <code>feat()</code> commit alone fails G2 + G3.</p>
