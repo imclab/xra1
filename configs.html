@@ -56,6 +56,13 @@
   .pipe-toolbar #pipe-status { margin-left: auto; color: var(--muted); font-size: 10px; }
   #pipe-svg { background: rgba(0,0,0,0.6); display: block; }
   #pipe-nodes text { pointer-events: none; user-select: none; }
+
+/* Horizontal control strips overflow the viewport on phones because they neither
+   wrap nor scroll. Let them scroll in place instead of widening the page. */
+@media (max-width: 700px) {
+  .pipe-toolbar { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .pipe-toolbar::-webkit-scrollbar { display: none; }
+}
 </style>
 </head>
 <body>

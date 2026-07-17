@@ -644,6 +644,15 @@ section{padding:clamp(4rem, 9vh, 7.5rem) 0; border-bottom:1px solid var(--rule);
 .cta.ghost:hover{color:var(--amber); border-color:var(--amber)}
 
 .cta-row{display:flex; flex-wrap:wrap; gap:1rem; margin-top:2rem}
+
+/* Horizontal control strips overflow the viewport on phones because they neither
+   wrap nor scroll. Let them scroll in place instead of widening the page. */
+@media (max-width: 700px) {
+  header.chrome, .chrome-row { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  header.chrome::-webkit-scrollbar, .chrome-row::-webkit-scrollbar { display: none; }
+  /* Copy ran flush into both edges with no gutter on phones. */
+  .frame { padding-left: 16px; padding-right: 16px; }
+}
 </style>
 </head>
 <body>

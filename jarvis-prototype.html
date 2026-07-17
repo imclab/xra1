@@ -501,6 +501,13 @@ canvas#diff-canvas { display: none; }
   letter-spacing: 0.08em; text-transform: lowercase;
   opacity: 0.7; transition: opacity 0.18s, color 0.18s; }
 #xrai-backnav:hover { opacity: 1; color: var(--aqua); }
+
+/* Horizontal control strips overflow the viewport on phones because they neither
+   wrap nor scroll. Let them scroll in place instead of widening the page. */
+@media (max-width: 700px) {
+  .topbar { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .topbar::-webkit-scrollbar { display: none; }
+}
 </style>
 
 <!-- ── topbar ── -->

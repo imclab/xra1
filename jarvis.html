@@ -805,6 +805,17 @@ addLog('tool', 'bridge · handshake → portals_ios');
   .arch-card .xray-hint { position: absolute; bottom: 8px; right: 10px; font-size: 9px; opacity: .35; letter-spacing: .08em; text-transform: uppercase; }
   .ledger-row { transition: background .2s; }
   .ledger-row.live-warn { background: rgba(247,255,168,0.06); }
+
+/* Horizontal control strips overflow the viewport on phones because they neither
+   wrap nor scroll. Let them scroll in place instead of widening the page. */
+@media (max-width: 700px) {
+  .topbar { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .topbar::-webkit-scrollbar { display: none; }
+  /* .hero is `1fr auto` and never collapsed, so its second column ran off the
+     screen and its copy was cut in half on phones. */
+  .hero { grid-template-columns: 1fr; gap: 20px; }
+  main.hud { padding: 16px 16px 72px; }
+}
 </style>
 
 <script type="module">

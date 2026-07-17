@@ -51,7 +51,7 @@
   const r = await fetch('data/priorities-snapshot.json');
   if (!r.ok) { document.getElementById('meta').textContent = 'snapshot missing — run: node scripts/build_priorities_snapshot.cjs'; return; }
   const snap = await r.json();
-  document.getElementById('meta').textContent = `built ${snap.built_at.slice(0,16).replace('T',' ')} · source: ${snap.source}`;
+  document.getElementById('meta').textContent = snap.built_at ? `built ${snap.built_at.slice(0,16).replace('T',' ')} · source: ${snap.source ?? 'unknown'}` : 'snapshot has no build stamp — run: node scripts/build_priorities_snapshot.cjs';
 
   const open = snap.priorities.filter(p => !p.done);
   const done = snap.priorities.filter(p => p.done);

@@ -158,9 +158,15 @@ if (SR){ const rec = new SR(); rec.lang='en-US'; rec.interimResults=false;
 
 // boot: load the real archetypes, then build the default prompt
 log('loading archetypes.json (51-word vocabulary)…');
-await loadArchetypes();
-log(`ready · ${TIERS.length}-tier cascade · core modules: intent/local.js + procgen/cascade.js + @xrai/threejs`);
-build(promptEl.value.trim());
+try {
+  await loadArchetypes();
+  log(`ready · ${TIERS.length}-tier cascade · core modules: intent/local.js + procgen/cascade.js + @xrai/threejs`);
+  build(promptEl.value.trim());
+} catch (e) {
+  log('data/archetypes.json is missing — the keyword classifier cannot boot.');
+  log('Generate it, then reload; the rest of the cascade is wired and ready.');
+  console.warn('[cascade-demo] loadArchetypes failed:', e);
+}
 </script>
 </body>
 </html>

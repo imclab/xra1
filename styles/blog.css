@@ -1,0 +1,248 @@
+/* Blog styling. The build template has always linked this file, but it was never
+   committed, so every blog page shipped with only brand.css tokens and no layout —
+   the header collapsed into "blogrfcsspecgithub" and posts ran edge to edge.
+   Tokens come from brand.css; this file only adds layout and typography. */
+
+.blog-index,
+.blog-post {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Satoshi', system-ui, sans-serif;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0 20px 80px;
+}
+
+/* ───── header ───── */
+.blog-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 20px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 0 40px;
+  border-bottom: 1px solid var(--border);
+}
+
+.blog-home {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.blog-header nav {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.blog-header nav a {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-soft);
+  text-decoration: none;
+  transition: color 0.15s var(--ease, ease);
+}
+
+.blog-header nav a:hover { color: var(--accent); }
+
+/* ───── index list ───── */
+.blog-index h1,
+.blog-post h1 {
+  max-width: 720px;
+  margin: 40px auto 8px;
+  font-size: clamp(28px, 6vw, 44px);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.blog-index > p {
+  max-width: 720px;
+  margin: 0 auto 40px;
+  color: var(--muted);
+}
+
+.post-list {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.post-row {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.post-row a {
+  color: var(--fg);
+  text-decoration: none;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  display: inline-block;
+  margin-bottom: 4px;
+  transition: color 0.15s var(--ease, ease);
+}
+
+.post-row a:hover { color: var(--accent); }
+
+.post-row time {
+  display: block;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted-soft);
+  margin-bottom: 6px;
+}
+
+.post-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+}
+
+/* ───── post body ───── */
+.blog-post article {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.blog-post .meta {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted-soft);
+  margin: 40px 0 0;
+}
+
+.blog-post .tag {
+  color: var(--accent);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  padding: 2px 7px;
+  margin-left: 4px;
+}
+
+.blog-post article h2 {
+  margin: 44px 0 12px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.blog-post article h3 {
+  margin: 32px 0 10px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.blog-post article p { margin: 0 0 18px; }
+
+.blog-post article a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.blog-post article a:hover { border-bottom-color: var(--accent); }
+
+.blog-post article ul,
+.blog-post article ol { margin: 0 0 18px; padding-left: 22px; }
+
+.blog-post article li { margin-bottom: 7px; }
+
+.blog-post article blockquote {
+  margin: 24px 0;
+  padding: 2px 0 2px 18px;
+  border-left: 2px solid var(--accent);
+  color: var(--muted);
+}
+
+.blog-post article img { max-width: 100%; height: auto; }
+
+.blog-post article code,
+.blog-index code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.88em;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+
+/* Long code samples scroll inside the block instead of widening the page. */
+.blog-post article pre {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.blog-post article pre code {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.blog-post article table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 18px;
+  font-size: 14px;
+}
+
+.blog-post article th,
+.blog-post article td {
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.blog-post article th {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.blog-post article hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 40px 0;
+}
+
+/* ───── footer ───── */
+.blog-footer {
+  max-width: 720px;
+  margin: 64px auto 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted-soft);
+}
+
+.blog-footer a { color: var(--muted); text-decoration: none; }
+.blog-footer a:hover { color: var(--accent); }
+
+@media (max-width: 640px) {
+  .blog-index,
+  .blog-post { padding: 0 16px 60px; }
+  .blog-header { gap: 12px; padding: 20px 0 28px; }
+  .blog-header nav { margin-left: 0; gap: 14px; }
+}
