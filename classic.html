@@ -216,6 +216,165 @@
   <p>LLMs solve the authoring burden. Cameras ground the symbols. MCP federates the agents. The window just opened.</p>
 </section>
 
+<style>
+  /* Capability matrices + early access — matches classic.html's own tokens */
+  .mx-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 18px; }
+  table.mx { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.mx th { text-align: left; color: var(--muted); font-weight: 600; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 8px; border-bottom: 1px solid #1a253f; }
+  table.mx th.c, table.mx td.c { text-align: center; width: 74px; }
+  table.mx td { padding: 8px; border-bottom: 1px solid #141d33; color: var(--fg); vertical-align: middle; }
+  table.mx td.u { color: var(--muted); font-size: 13px; }
+  table.mx tr:hover td { background: #111a2e; }
+  .mx-group { color: var(--accent); font-weight: 600; font-size: 13px; letter-spacing: 0.04em;
+    margin: 26px 0 8px; text-transform: uppercase; }
+  .mx-legend { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+  /* Early access */
+  .ea-card { background: linear-gradient(135deg, #111a2e 0%, #1a253f 100%); border-radius: 12px; padding: 28px 24px; }
+  .ea-form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .ea-form input[type=email] { flex: 1 1 240px; min-width: 0; padding: 11px 14px; border-radius: 8px;
+    background: #0a0f1c; border: 1px solid #26314d; color: var(--fg); font: inherit; font-size: 15px; }
+  .ea-form input[type=email]::placeholder { color: var(--muted); }
+  .ea-form input[type=email]:focus { outline: none; border-color: var(--accent); }
+  .ea-form button { padding: 11px 20px; border-radius: 8px; border: 0; cursor: pointer;
+    background: var(--accent); color: var(--bg); font: inherit; font-weight: 600; font-size: 15px; }
+  .ea-form button:hover { opacity: 0.9; }
+  .ea-form button:disabled { opacity: 0.5; cursor: default; }
+  .ea-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .ea-chips label { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #0a0f1c;
+    border: 1px solid #26314d; color: var(--muted); font-size: 13px; cursor: pointer; user-select: none; }
+  .ea-chips label.on { border-color: var(--accent); color: var(--accent); }
+  .ea-chips input { display: none; }
+  .ea-status { margin-top: 12px; font-size: 14px; color: var(--accent); }
+  .ea-fine { margin-top: 12px; font-size: 12px; color: var(--muted); }
+</style>
+
+<section id="capabilities">
+  <h2>What it can do</h2>
+  <p class="muted">Perception, contextual awareness, and the XRAI platform — what's shipped versus what's in flight.
+    <strong style="color:var(--fg)">🟢 shipped / demonstrated</strong> · <strong style="color:var(--fg)">🟡 in progress</strong>.
+    Mobile = iOS / headset · Web = the encode-decode + viewer surface.</p>
+
+  <div class="mx-group">Perception &amp; contextual awareness</div>
+  <div class="mx-wrap"><table class="mx">
+    <thead><tr><th>Capability</th><th>What it's for</th><th class="c">Mobile</th><th class="c">Web</th></tr></thead>
+    <tbody>
+      <tr><td>📏 Metric depth sensing</td><td class="u">True-scale placement &amp; measurement</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>✂️ People occlusion &amp; matting</td><td class="u">People walk in front of portals</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>🏷️ Scene mesh + semantic labels</td><td class="u">Content reacts to floors, walls, objects</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>📍 World-locked geo-anchoring</td><td class="u">City-scale, GPS-locked persistent portals</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>🔎 Object &amp; image recognition</td><td class="u">Marker &amp; product-triggered experiences</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>🧭 User-intent inference</td><td class="u">The right tool surfaces before you ask</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>😊 Affect &amp; expression sensing</td><td class="u">Empathetic response to mood</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>🗣️ Voice + vision understanding</td><td class="u">Ask about what you're looking at, hands-free</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>☝️ Raycast pointing (near &amp; far)</td><td class="u">Point to select &amp; act at any distance</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>🕸️ Relationship mapping</td><td class="u">How people, objects &amp; spaces relate</td><td class="c">🟡</td><td class="c">🟢</td></tr>
+      <tr><td>🦴 Full-body pose &amp; skeleton</td><td class="u">Form coaching; live avatar drive</td><td class="c">🟡</td><td class="c">🟡</td></tr>
+      <tr><td>🔁 Perceive → understand → act</td><td class="u">Sees, understands, and acts in one loop</td><td class="c">🟡</td><td class="c">🟢</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="mx-group">XRAI platform</div>
+  <div class="mx-wrap"><table class="mx">
+    <thead><tr><th>Capability</th><th>What it's for</th><th class="c">Mobile</th><th class="c">Web</th></tr></thead>
+    <tbody>
+      <tr><td>📄 Portable scene manifest</td><td class="u">Structure travels; heavy payloads stream on demand</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>💾 Persistent + editable state</td><td class="u">Save, re-open, mutate across sessions &amp; devices</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>🧾 Edit history + provenance</td><td class="u">Replay intent; track source, license, generator</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>🔀 Cross-runtime portability</td><td class="u">One <code>.xrai</code> decodes on many renderers</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>🔌 Encode-anything → graph</td><td class="u">A webpage, repo, paper or calendar becomes a graph</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>⚡ Typed relations</td><td class="u"><code>reacts-to-audio</code>, <code>tracks</code> — behavior, not hierarchy</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>🎙️ Voice / no-code authoring</td><td class="u">On-device intent parsing with cloud fallback</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>🌱 Procedural world generation</td><td class="u">Voice → environments from seed + rules</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>🖼️ Text / image → 3D asset</td><td class="u">Prompt an object or room-scale asset in seconds</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>🎆 360+ real-time VFX</td><td class="u">Console-grade effects at 60 fps on a phone</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>⚛️ LOD-adaptive splatting (SPAG)</td><td class="u">Panorama → editable Gaussians; four-tier LOD</td><td class="c">🟢</td><td class="c">🟡</td></tr>
+      <tr><td>🌐 WebGL / WebGPU rendering</td><td class="u">Graph + scene viewers in the browser</td><td class="c">🟡</td><td class="c">🟢</td></tr>
+      <tr><td>📦 glTF 2.0 / GLB · USD interop</td><td class="u">Compose with the existing 3D ecosystem</td><td class="c">🟢</td><td class="c">🟢</td></tr>
+      <tr><td>🩻 Provenance / X-ray</td><td class="u">Cost, model &amp; lineage behind every generated thing</td><td class="c">🟡</td><td class="c">🟡</td></tr>
+    </tbody>
+  </table></div>
+
+  <p class="mx-legend">Statuses are conservative on purpose. Full matrices, sources and the splat-technique ranking live in the paper and the comparison doc.</p>
+  <a class="cta secondary" href="COMPARISON.md">Learn more — full comparison →</a>
+  <a class="cta secondary" href="https://h3m.ai/portals-cvpr2026">Read the CVPR paper →</a>
+</section>
+
+<section id="early-access">
+  <h2>Get early access</h2>
+  <div class="ea-card">
+    <p style="margin-bottom:0"><strong>Build worlds that persist, stay editable, and travel across every device.</strong></p>
+    <p class="muted" style="margin-bottom:0">Join the early-access list for Portals, the XRAI format, and jARvis.</p>
+    <form class="ea-form" id="ea-form" novalidate>
+      <input type="email" name="email" required autocomplete="email" placeholder="you@email.com" aria-label="Email address" />
+      <button type="submit">Request access</button>
+    </form>
+    <div class="ea-chips" id="ea-chips">
+      <label><input type="checkbox" value="portals" />Portals app</label>
+      <label><input type="checkbox" value="xrai" />XRAI format</label>
+      <label><input type="checkbox" value="jarvis" />jARvis</label>
+      <label><input type="checkbox" value="partnership" />Partnership</label>
+    </div>
+    <p class="ea-status" id="ea-status" role="status" hidden></p>
+    <p class="ea-fine">We only use your email to invite you. No spam, unsubscribe anytime.</p>
+  </div>
+</section>
+
+<script type="module">
+  // Early-access capture. Collect-only: this logs the signup to Statsig.
+  // It never sends email from the client and has no mailto path.
+  const STATSIG_CLIENT_KEY = 'client-X3MlFhjGxmjttFY16HuGY9ESzBifKY2oJjBn2VtKfDU';
+  const form = document.getElementById('ea-form');
+  const statusEl = document.getElementById('ea-status');
+  const chips = document.getElementById('ea-chips');
+  let statsig = null;
+
+  chips.addEventListener('change', (e) => {
+    const l = e.target.closest('label');
+    if (l) l.classList.toggle('on', e.target.checked);
+  });
+
+  function show(msg, ok) {
+    statusEl.hidden = false;
+    statusEl.textContent = msg;
+    statusEl.style.color = ok ? 'var(--accent)' : '#ff8080';
+  }
+
+  async function getStatsig() {
+    if (statsig) return statsig;
+    try {
+      const { StatsigClient } = await import('https://cdn.jsdelivr.net/npm/@statsig/js-client@3/+esm');
+      const c = new StatsigClient(STATSIG_CLIENT_KEY, {});
+      await c.initializeAsync();
+      statsig = c;
+      return c;
+    } catch (_) { return null; }
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = form.email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { show('Please enter a valid email.', false); return; }
+    const interests = [...chips.querySelectorAll('input:checked')].map(i => i.value);
+    const btn = form.querySelector('button');
+    btn.disabled = true;
+    // Keep a local copy so nothing is lost if the network/analytics call fails.
+    try {
+      const q = JSON.parse(localStorage.getItem('xrai_early_access') || '[]');
+      q.push({ email, interests, ts: new Date().toISOString() });
+      localStorage.setItem('xrai_early_access', JSON.stringify(q));
+    } catch (_) {}
+    const c = await getStatsig();
+    if (c) {
+      try { c.logEvent({ eventName: 'early_access_signup', value: email, metadata: { interests: interests.join(',') , source: 'xra1/classic' } }); } catch (_) {}
+    }
+    show("✓ You're on the list — we'll be in touch.", true);
+    form.reset();
+    chips.querySelectorAll('label').forEach(l => l.classList.remove('on'));
+    btn.disabled = false;
+  });
+</script>
+
 <section id="get-started">
   <h2>Get started</h2>
   <div class="card">
