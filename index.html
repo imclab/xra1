@@ -102,6 +102,11 @@
     letter-spacing: -0.005em; margin-bottom: 10px;
   }
   .pcard p:last-child { margin-bottom: 0; }
+  .pcard table.mx { width: 100%; border-collapse: collapse; margin: 4px 0 12px; font-size: 12px; }
+  .pcard table.mx th, .pcard table.mx td { padding: 4px 5px; text-align: center; border-bottom: 1px solid var(--border-strong); }
+  .pcard table.mx th:first-child, .pcard table.mx td:first-child { text-align: left; color: var(--fg-dim); white-space: nowrap; }
+  .pcard table.mx thead th { font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pcard table.mx tbody td { font-family: 'JetBrains Mono', monospace; }
   .pcard code {
     font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--accent);
     background: rgba(247,255,168,0.08); padding: 1px 5px; border-radius: 2px;
@@ -2062,6 +2067,28 @@ const PARALLAX_CARDS = [
     html: `<span class="pill">governance</span>
       <h3>MIT · CC0 · no CLA</h3>
       <p>Reference code MIT. Normative schema CC0. Year-1 BDFL is <a href="https://github.com/imclab">@jamestunick</a>; transfers to Apache SF / W3C Community Group at 1000+ external adopters. <a href="MANIFESTO.md">manifesto →</a></p>`,
+  },
+
+  // System capability comparison — bottom of the canvas. Full detailed matrix in COMPARISON.md (SSOT).
+  {
+    layer: 'near', px: 0, py: 250, rate: 1.0,
+    html: `<span class="pill">capability matrix</span>
+      <h3>System capability <span class="mono">comparison</span></h3>
+      <p>What the Portals / XRAI system does, per surface — honest status.
+        <strong>✅</strong> verified · <strong>🔨</strong> in progress · <strong>⏳</strong> planned.</p>
+      <table class="mx">
+        <thead><tr><th>capability</th><th>iOS</th><th>Unity</th><th>Web</th></tr></thead>
+        <tbody>
+          <tr><td>Voice → 4D scene authoring</td><td>✅</td><td>🔨</td><td>✅</td></tr>
+          <tr><td>Persistent, editable 4D state</td><td>✅</td><td>🔨</td><td>✅</td></tr>
+          <tr><td>On-device edge · 60 FPS</td><td>✅</td><td>🔨</td><td>🔨</td></tr>
+          <tr><td>Encode anything → XRAI (12)</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Decode on anything</td><td>✅</td><td>✅</td><td>✅</td></tr>
+          <tr><td>Live perception (see/measure)</td><td>⏳</td><td>🔨</td><td>🔨</td></tr>
+          <tr><td>Open · MIT code · CC0 schema</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        </tbody>
+      </table>
+      <p><a href="COMPARISON.md">full detailed matrix · perception rows · approach diff →</a></p>`,
   },
 ];
 
