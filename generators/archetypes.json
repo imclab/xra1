@@ -1,0 +1,567 @@
+{
+  "xrai_generators_version": "0.1",
+  "id": "xrai://generators/archetypes",
+  "_note": "Single source of truth for universal archetypes: tiny rules that unfold structure (constitution: author rules, not assets). Not RFC 0010 archetypes (entity component bundles, archetypes/registry.json). rule4 = <D domain, F fold, O observe, A accumulate> (portals_v4 skill distill-to-rule); F and O are portable, D and A bind per host. Consumers reference entries by id; copies elsewhere are pointers, never forks.",
+  "restored_from": "xra1@jarvis-games-2026-07-10:_incoming/jarvis-games-2026-07-10/lib-scale/archetypes.ts (875e37b, 2026-07-10; self-test 8/8 on 2026-09-15)",
+  "gaps": [
+    "evolutionary algorithms",
+    "gravity / three-body",
+    "biomes (as voxel codons in portals_v4 shared/procgen/codon-map.json, not yet an entry here)",
+    "raw GLSL of the 10 zozuar #つぶやきGLSL shaders (only their 4 folds survive, in distill-to-rule)",
+    "rule4 for the 15 form entries other than dna"
+  ],
+  "archetypes": [
+    {
+      "id": "spiral",
+      "name": "Spiral",
+      "rule": "r = a·e^(bθ) · φ phyllotaxis 137.5°",
+      "nature": [
+        "nautilus shell",
+        "sunflower seeds",
+        "galaxies",
+        "whirlpools"
+      ],
+      "city": [
+        "spiral staircase",
+        "parking ramp",
+        "drain"
+      ],
+      "essences": [
+        "water"
+      ],
+      "anchor": "Mandelbrot self-similarity (:368)",
+      "difficulty": 1,
+      "growKind": "spiral",
+      "sig": [
+        1,
+        0.1,
+        0,
+        0.2
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "lsystem",
+      "name": "L-system",
+      "rule": "rewrite F→F[+F]F[−F]F",
+      "nature": [
+        "trees",
+        "ferns",
+        "lungs",
+        "river deltas"
+      ],
+      "city": [
+        "street trees",
+        "pipe networks",
+        "wall cracks"
+      ],
+      "essences": [
+        "fire"
+      ],
+      "anchor": "codelet law (:870)",
+      "difficulty": 1,
+      "growKind": "lsystem",
+      "sig": [
+        0.2,
+        1,
+        0.1,
+        0.1
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "mandelbrot",
+      "name": "Mandelbrot set",
+      "rule": "z → z² + c",
+      "nature": [
+        "coastlines",
+        "Romanesco",
+        "snowflakes"
+      ],
+      "city": [
+        "skylines",
+        "circuit traces"
+      ],
+      "essences": [
+        "clouds"
+      ],
+      "anchor": "Mandelbrot (:368)",
+      "difficulty": 3,
+      "growKind": "spiral",
+      "sig": [
+        0.6,
+        0.6,
+        0.2,
+        0.4
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "mandelbulb",
+      "name": "Mandelbulb",
+      "rule": "z → z^n + c in ℝ³",
+      "nature": [
+        "coral",
+        "cave formations",
+        "minerals"
+      ],
+      "city": [
+        "brutalist facades",
+        "ornament"
+      ],
+      "essences": [
+        "clouds"
+      ],
+      "anchor": "Mandelbrot extended (:368)",
+      "difficulty": 4,
+      "growKind": "spiral",
+      "sig": [
+        0.6,
+        0.6,
+        0.3,
+        0.4
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "cellular",
+      "name": "Game of Life",
+      "rule": "4 local birth/death rules (B3/S23)",
+      "nature": [
+        "shell pigment",
+        "forest-fire spread",
+        "slime mold"
+      ],
+      "city": [
+        "crowd flow",
+        "traffic waves"
+      ],
+      "essences": [
+        "sparks"
+      ],
+      "anchor": "Conway (:370), Wolfram (:362)",
+      "difficulty": 2,
+      "growKind": "cellular",
+      "sig": [
+        0,
+        0.1,
+        0.9,
+        0.5
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "wfc",
+      "name": "Wave Function Collapse",
+      "rule": "local constraints → aperiodic order",
+      "nature": [
+        "quasicrystals",
+        "crystal growth"
+      ],
+      "city": [
+        "floor mosaics",
+        "brick bonds",
+        "block layouts"
+      ],
+      "essences": [
+        "snow"
+      ],
+      "anchor": "Penrose (:362)",
+      "difficulty": 3,
+      "growKind": "cellular",
+      "sig": [
+        0,
+        0.1,
+        1,
+        0.2
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "dna",
+      "name": "DNA / double-helix",
+      "rule": "genotype → phenotype",
+      "nature": [
+        "DNA",
+        "vines",
+        "seashell coil"
+      ],
+      "city": [
+        "twisted towers",
+        "helical ramps"
+      ],
+      "essences": [
+        "water"
+      ],
+      "anchor": "XRAI = DNA (:532,:572)",
+      "difficulty": 3,
+      "growKind": "spiral",
+      "sig": [
+        0.9,
+        0.2,
+        0,
+        0.1
+      ],
+      "kind": "form",
+      "rule4": {
+        "D": "item j = 0..n-1 in order, each with a height y_j the host supplies (page offset, time, j * pitch)",
+        "F": "theta_j = j * (pi + 2*pi/T)",
+        "O": "pose_j = (r sin theta_j, -y_j, r cos theta_j), facing out from the axis; strand = j mod 2",
+        "A": "none: stateless. A viewer at fractional p faces theta(p), easing between items by smoothstep"
+      },
+      "params": {
+        "T": {
+          "default": 10.5,
+          "unit": "items per turn",
+          "note": "10.5 is the B-DNA value used on theimclab.com"
+        },
+        "r": {
+          "default": 1,
+          "unit": "host length"
+        }
+      },
+      "invariants": [
+        "consecutive items stand on opposite strands: theta_{j+1} - theta_j = pi + 2pi/T",
+        "items j and j+m share a column only when m(1/2 + 1/T) is an integer; T = 10.5 gives m = 42, so a page never closes into a box"
+      ],
+      "variants": {
+        "single-helix": "F: theta_j = j * 2pi/T",
+        "phyllotaxis": "F: theta_j = j * pi * (3 - sqrt 5)"
+      },
+      "bindings": [
+        {
+          "target": "web layout",
+          "where": "theimclab.com js/lab-interact.js createSpiral",
+          "params": {
+            "T": 10.5,
+            "r": 1.35
+          },
+          "status": "shipped locally 35ff0c8"
+        }
+      ],
+      "verify": [
+        {
+          "how": "read spiral pin angles on theimclab.com with ?labdebug",
+          "expect": {
+            "j": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "theta": [
+              0,
+              3.739991,
+              7.479983,
+              11.219974
+            ]
+          },
+          "result": "PASS 2026-09-15 (j = 0..5)"
+        }
+      ]
+    },
+    {
+      "id": "perlin",
+      "name": "Perlin / flow noise",
+      "rule": "gradient noise field",
+      "nature": [
+        "terrain",
+        "clouds",
+        "wood grain"
+      ],
+      "city": [
+        "rust",
+        "worn stone",
+        "graffiti"
+      ],
+      "essences": [
+        "clouds"
+      ],
+      "anchor": "Perlin (:358)",
+      "difficulty": 2,
+      "growKind": "cellular",
+      "sig": [
+        0.1,
+        0.1,
+        0.3,
+        0.7
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "voronoi",
+      "name": "Voronoi / Delaunay",
+      "rule": "nearest-seed partition",
+      "nature": [
+        "giraffe skin",
+        "cracked mud",
+        "foam",
+        "basalt columns"
+      ],
+      "city": [
+        "cracked pavement",
+        "coverage maps"
+      ],
+      "essences": [
+        "sparks"
+      ],
+      "anchor": "local-rule emergence (:405)",
+      "difficulty": 2,
+      "growKind": "cellular",
+      "sig": [
+        0,
+        0.1,
+        0.95,
+        0.2
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "reaction-diffusion",
+      "name": "Reaction-diffusion",
+      "rule": "activator–inhibitor PDE (Turing)",
+      "nature": [
+        "leopard spots",
+        "zebra stripes",
+        "fingerprints"
+      ],
+      "city": [
+        "rust blooms",
+        "paint crackle",
+        "moss"
+      ],
+      "essences": [
+        "fire"
+      ],
+      "anchor": "morphogenesis (:405)",
+      "difficulty": 4,
+      "growKind": "cellular",
+      "sig": [
+        0.1,
+        0.2,
+        0.7,
+        0.6
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "attractor",
+      "name": "Strange attractor",
+      "rule": "chaotic deterministic flow (Lorenz)",
+      "nature": [
+        "turbulence",
+        "smoke plumes",
+        "heart rhythm"
+      ],
+      "city": [
+        "traffic chaos",
+        "crowd turbulence"
+      ],
+      "essences": [
+        "smoke"
+      ],
+      "anchor": "Wolfram irreducibility (:362)",
+      "difficulty": 5,
+      "growKind": "spiral",
+      "sig": [
+        0.7,
+        0.1,
+        0,
+        0.9
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "boids",
+      "name": "Flocking / Boids",
+      "rule": "separation · alignment · cohesion",
+      "nature": [
+        "murmurations",
+        "fish schools",
+        "ant swarms"
+      ],
+      "city": [
+        "pedestrian crowds",
+        "drones"
+      ],
+      "essences": [
+        "fireflies"
+      ],
+      "anchor": "Minsky Society of Mind (:379)",
+      "difficulty": 3,
+      "growKind": "cellular",
+      "sig": [
+        0.2,
+        0.1,
+        0.2,
+        0.8
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "dendritic",
+      "name": "Dendritic / DLA",
+      "rule": "diffusion-limited aggregation",
+      "nature": [
+        "rivers",
+        "lightning",
+        "frost",
+        "neurons"
+      ],
+      "city": [
+        "power grids",
+        "subway maps",
+        "water mains"
+      ],
+      "essences": [
+        "lightning"
+      ],
+      "anchor": "fractal branching (:401)",
+      "difficulty": 3,
+      "growKind": "lsystem",
+      "sig": [
+        0.1,
+        0.9,
+        0.2,
+        0.4
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "hex",
+      "name": "Hex packing",
+      "rule": "optimal tiling / minimal surface",
+      "nature": [
+        "honeycomb",
+        "insect eyes",
+        "snowflakes"
+      ],
+      "city": [
+        "geodesic domes",
+        "chain-link",
+        "tiling"
+      ],
+      "essences": [
+        "snow"
+      ],
+      "anchor": "Fuller synergetics (:376)",
+      "difficulty": 2,
+      "growKind": "cellular",
+      "sig": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "sierpinski",
+      "name": "Self-similarity / Sierpinski",
+      "rule": "recursion / strange loop",
+      "nature": [
+        "fern",
+        "Romanesco",
+        "lung",
+        "vessels"
+      ],
+      "city": [
+        "truss towers",
+        "fractal antennas",
+        "nested arches"
+      ],
+      "essences": [
+        "sparks"
+      ],
+      "anchor": "Hofstadter (:374)",
+      "difficulty": 3,
+      "growKind": "lsystem",
+      "sig": [
+        0.1,
+        0.8,
+        0.4,
+        0
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "cymatics",
+      "name": "Wave interference / cymatics",
+      "rule": "standing waves",
+      "nature": [
+        "ripples",
+        "dunes",
+        "ripple marks"
+      ],
+      "city": [
+        "moiré facades",
+        "sound barriers"
+      ],
+      "essences": [
+        "water"
+      ],
+      "anchor": "Shannon signal (:372)",
+      "difficulty": 4,
+      "growKind": "cellular",
+      "sig": [
+        0.3,
+        0,
+        0.6,
+        0.3
+      ],
+      "kind": "form"
+    },
+    {
+      "id": "therarp",
+      "name": "TherArp (the Divine Conductor)",
+      "kind": "interaction",
+      "rule": "two hands steer one clocked generator over a consonant set",
+      "rule4": {
+        "D": "tick k on a grid (16ths); two controls, frame hand a and voice hand b, each in [0,1] or absent",
+        "F": "note_k = P[ base(b.y) + pattern(k, span(|a.x - b.x|)) ]  with P a consonant set repeated by octaves",
+        "O": "at each tick, sample and hold the eased controls: voice(note_k, tone(a.y), level(presence, rest))",
+        "A": "voices sum into echo and space; controls ease one-pole (tau), register changes past a hysteresis margin"
+      },
+      "why_it_works": [
+        "no wrong notes: every index lands in a consonant set",
+        "sound before skill: the clock never waits for the player",
+        "gestures land on the beat: controls are sampled once per tick",
+        "up means more: the voice hand climbs register, the frame hand opens brightness",
+        "a trembling hand never stutters: easing plus hysteresis",
+        "depth to master: span from hand spread, rest by pinch, energy sets density"
+      ],
+      "bindings": [
+        {
+          "name": "COSMOS",
+          "measured_from": "AI Studio prototype XRAI - COSMOS, src/hooks/useArpSynth.ts",
+          "params": "pitches C minor pentatonic, pattern up span 11, base floor(b.y*3)-1 octaves, tone 200+4000 a.y linear, Q 1+10 a.y, wave saw above b.y 0.5 else square, bpm 80+160 b.y, tau 0, gate both hands, hold on loss"
+        },
+        {
+          "name": "CONDUCTOR",
+          "designed_for": "theimclab.com live rooms",
+          "params": "D major pentatonic, updown span 2..7 from spread, base round(b.y*14)-4 degrees with hysteresis 0.35, tone 380..6400 Hz exp, bpm 84 shared wall-clock grid, tau 0.1 s, gate any hand, fade 1.2 s, pinch rests, still hands play eighths"
+        }
+      ],
+      "where": "theimclab.com repo tools/xrai-live/src/therarp.js",
+      "applies_to": [
+        "any instrument",
+        "particle emitters: set = palette x shapes, tick = burst",
+        "shader uniforms on a beat",
+        "agent actions from a consonant action set",
+        "UI: two-hand scrubbing of a quantised timeline"
+      ],
+      "verify": [
+        {
+          "how": "node --test tools/xrai-live/test/therarp.test.mjs",
+          "expect": "10/10, COSMOS equals the prototype on 14,994 notes",
+          "result": "PASS 2026-09-15; 5/5 deliberate mutations caught"
+        },
+        {
+          "how": "node check-live-room.js",
+          "expect": "a remote member's hands drive their instrument on another page",
+          "result": "PASS 2026-09-15"
+        }
+      ]
+    }
+  ]
+}
